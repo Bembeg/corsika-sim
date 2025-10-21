@@ -1,2 +1,4 @@
 output/
 plots/
+.timer*
+fort*

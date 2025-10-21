@@ -43,15 +43,15 @@ fi
 MAIN_PID=$$
 
 # Number of available threads
-THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
-THREADS=1
+# THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
+THREADS=4
 
 # Main directory with the Corsika project
-MAIN_DIR="/scratch/home/rprivara/Corsika"
+MAIN_DIR="${PWD}/../"
 # C8 executable
 C8_EXEC="${MAIN_DIR}/corsika/install/bin/c8_air_shower"
 # Output directory
-OUTPUT_DIR="${MAIN_DIR}/sim/output"
+OUTPUT_DIR="${PWD}/output"
 
 # Enter C8 environment
 source ${MAIN_DIR}/setup.sh
@@ -60,11 +60,10 @@ source ${MAIN_DIR}/setup.sh
 PARTICLES=(2212 22)
 
 # Primary energies to simulate (in GeV), corresponding to CTA energy range 20 GeV - 300 TeV
-#ENERGIES=(20 1000 300000)
-ENERGIES=(20 1000 100000)
+ENERGIES=(20)
 
 # Number of shower repetitions for each configuration
-REPS=1
+REPS=10
 
 echo "Running shower simulations:"
 
@@ -78,47 +77,55 @@ for PART in ${PARTICLES[@]}; do
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}"
         fi
 
-        # Check if output directory exists for this simulation
-        if [ -d ${SIM_OUTPUT} ]; then
-            echo "  Simulation output already exists for Primary particle PDG: $PART, energy: $ENE GeV"
+        for N in $(seq 1 1 $REPS); do
+            echo -en "\033[2K\r    Primary particle PDG: $PART, energy: $ENE GeV, running $N/$REPS"
 
-            rm -rf ${SIM_OUTPUT}
-    
-            # continue
-        fi
+            RUN_OUTPUT=${SIM_OUTPUT}/run_$N
 
-        if [ "$1" = "--profile" ]; then
-            # Run Corsika with valgrind profiling
-            valgrind --tool=callgrind --callgrind-out-file=${SIM_OUTPUT}.profile \
+            # Check if output directory exists for this simulation
+            if [ -d ${RUN_OUTPUT} ]; then
+                # echo "  Simulation output already exists for Primary particle PDG: $PART, energy: $ENE GeV"
+                rm -rf ${RUN_OUTPUT}    
+                # continue
+            fi
+
+            if [ "$1" = "--profile" ]; then
+                # Run Corsika with valgrind profiling
+                valgrind --tool=callgrind --callgrind-out-file=${SIM_OUTPUT}_${N}.prof \
+                    ${C8_EXEC} \
+                        --nevent 1 \
+                        --pdg $PART \
+                        -E $ENE \
+                        -f ${RUN_OUTPUT} \
+                        &> ${SIM_OUTPUT}_${N}.log &
+            else      
+                # Run Corsika
                 ${C8_EXEC} \
                     --nevent 1 \
                     --pdg $PART \
                     -E $ENE \
-                    -f ${SIM_OUTPUT} \
-                    &> ${SIM_OUTPUT}.log &
-        else      
-            # Run Corsika
-            ${C8_EXEC} \
-                --nevent 1 \
-                --pdg $PART \
-                -E $ENE \
-                -f ${SIM_OUTPUT} \
-                &> ${SIM_OUTPUT}.log &
-        fi
+                    -f ${RUN_OUTPUT} \
+                    &> ${SIM_OUTPUT}_${N}.log &
+            fi
 
-        # Get PID of the new process
-        PID=$!
-        RUNS+=($PID)
-        
-        echo "  [PID:$PID] Primary particle PDG: $PART, energy: $ENE GeV"
+            # Get PID of the new process
+            PID=$!
+            RUNS+=($PID)
+            
+            # Profiling using Perf
+            # sudo perf record -p $PID -F 999 -g -o ${RUN_OUTPUT}.data &
 
-        # Profiling using Perf
-        # sudo perf record -p $PID -F 999 -g -o ${SIM_OUTPUT}.data &
+            # Wait after starting a simulation run
+            sleep 0.1
 
-        while [ get_threads -ge $THREADS ]; do
-            echo "Waiting for available threads ($THREADS used)"
-            sleep 1
+            # Keep waiting until some threads are free
+            while [ $(get_threads) -ge $THREADS ]; do
+                sleep 1
+            done
         done
+
+        # Newline
+        echo
     done
 done
 
@@ -133,19 +140,21 @@ wait
 echo "All done"
 
 # Move log files into the respective output directories and print runtimes
-echo "Runtimes:"
+# echo "Runtimes:"
 for PART in ${PARTICLES[@]}; do
     for ENE in ${ENERGIES[@]}; do
         # Determine output directory name for this simulation
         if [ "$1" = "--profile" ]; then
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_prof"
-            mv ${SIM_OUTPUT}.profile ${SIM_OUTPUT}/run.profile
         else 
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}"
         fi
 
-        mv ${SIM_OUTPUT}.log ${SIM_OUTPUT}/run.log 2>/dev/null
-        echo "  PDG: $PART, energy: $ENE, $(cat ${SIM_OUTPUT}/summary.yaml | grep "runtime:")"
+        for N in $(seq 1 1 $REPS); do
+            mv ${SIM_OUTPUT}_${N}.prof ${SIM_OUTPUT}/run_$N/run.prof 
+            mv ${SIM_OUTPUT}_${N}.log ${SIM_OUTPUT}/run_$N/run.log 
+            # echo "  PDG: $PART, energy: $ENE, $(cat ${RUN_OUTPUT}/summary.yaml | grep "runtime:")"
+        done
     done
 done
 
