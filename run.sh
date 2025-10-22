@@ -91,7 +91,7 @@ for PART in ${PARTICLES[@]}; do
 
             if [ "$1" = "--profile" ]; then
                 # Run Corsika with valgrind profiling
-                valgrind --tool=callgrind --callgrind-out-file=${SIM_OUTPUT}_${N}.prof \
+                valgrind --tool=callgrind --callgrind-out-file=${SIM_OUTPUT}_${N}.prof --cache-sim=yes \
                     ${C8_EXEC} \
                         --nevent 1 \
                         --pdg $PART \
