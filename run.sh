@@ -47,7 +47,7 @@ MAIN_PID=$$
 THREADS=4
 
 # Main directory with the Corsika project
-MAIN_DIR="${PWD}/../"
+MAIN_DIR="${PWD}/.."
 # C8 executable
 C8_EXEC="${MAIN_DIR}/corsika/install/bin/c8_air_shower"
 # Output directory
@@ -60,7 +60,7 @@ source ${MAIN_DIR}/setup.sh
 PARTICLES=(2212 22)
 
 # Primary energies to simulate (in GeV), corresponding to CTA energy range 20 GeV - 300 TeV
-ENERGIES=(20)
+ENERGIES=(10 100 500)
 
 # Number of shower repetitions for each configuration
 REPS=10
@@ -77,8 +77,8 @@ for PART in ${PARTICLES[@]}; do
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}"
         fi
 
-        for N in $(seq 1 1 $REPS); do
-            echo -en "\033[2K\r    Primary particle PDG: $PART, energy: $ENE GeV, running $N/$REPS"
+        for N in $(seq 0 1 $((REPS-1))); do
+            echo -en "\033[2K\r    Primary particle PDG: $PART, energy: $ENE GeV, running $((N+1))/$REPS"
 
             RUN_OUTPUT=${SIM_OUTPUT}/run_$N
 
@@ -150,9 +150,9 @@ for PART in ${PARTICLES[@]}; do
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}"
         fi
 
-        for N in $(seq 1 1 $REPS); do
-            mv ${SIM_OUTPUT}_${N}.prof ${SIM_OUTPUT}/run_$N/run.prof 
-            mv ${SIM_OUTPUT}_${N}.log ${SIM_OUTPUT}/run_$N/run.log 
+        for N in $(seq 0 1 $((REPS-1))); do
+            mv ${SIM_OUTPUT}_${N}.prof ${SIM_OUTPUT}/run_$N/run.prof 2>/dev/null
+            mv ${SIM_OUTPUT}_${N}.log ${SIM_OUTPUT}/run_$N/run.log 2>/dev/null
             # echo "  PDG: $PART, energy: $ENE, $(cat ${RUN_OUTPUT}/summary.yaml | grep "runtime:")"
         done
     done
