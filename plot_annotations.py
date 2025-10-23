@@ -21,7 +21,7 @@ outputs = ["output/pdg22_E10_prof/annotate.txt",
         "output/pdg2212_E500_prof/annotate.txt"]
 
 # Override for single output and debugging
-# outputs = ["output/pdg22_E10_prof/annotate.txt"]
+# outputs = ["output/pdg2212_E500_prof/annotate.txt"]
 
 for output in outputs:
     print("Processing output '", output, "'", sep="")
@@ -82,7 +82,7 @@ for output in outputs:
         for r in range(n_runs):
             # Detect diff between ref function (run0) and current function at the same position
             if (ref_f != results[r][f].fn):
-                print("    - Diff in run ", r, ", pos ", f, " (ref: ", ref_f, ", curr: ", results[r][f].fn,")", sep="")
+                # print("    - diff in run ", r, ", pos ", f, " (ref: ", ref_f, ", curr: ", results[r][f].fn,")", sep="")
                 mismatch += 1
 
     # Matching summary
@@ -116,7 +116,7 @@ for output in outputs:
         cst = [fct.cst for fct in results[r]]
         fct = [fct.fn for fct in results[r]]
         # Plot this run
-        ax.plot(range(1, n_runs+1), cst, label="run"+str(r), linewidth=1, linestyle="solid", marker="x")
+        ax.plot(range(len(cst)), cst, label="run"+str(r)+" ("+str(round(sum(cst),1))+"%)", linewidth=1, linestyle="solid", marker="x")
     
     # List functions and corresponding libs
     for f in range(n_fct):
