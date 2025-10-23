@@ -103,7 +103,7 @@ for output in outputs:
     fig.tight_layout(rect=[0.03, 0.35, 0.97, 0.97])
     # Axis labels and title
     ax.set_xlabel("n-th costliest function")
-    ax.set_ylabel("cost [%]")
+    ax.set_ylabel("function cost [%]")
     ax.set_title(label)
     # X-axis ticks
     ax.set(xticks=range(1, n_runs+1))
