@@ -27,7 +27,7 @@ for SIM in $(ls ${OUTPUT_DIR}); do
             echo -e "$CONT" | grep "PROGRAM TOTALS" > $DIR/annotate.txt
             
             # Parse top $FUNCS functions
-            echo "--- (top $FUNCS) ---" >> $DIR/annotate.txt
+            echo "===" >> $DIR/annotate.txt
             echo -e "$CONT" | head -n $((FUNCS+25)) | tail -n $FUNCS >> $DIR/annotate.txt 
 
             # Merge all run annotations to one file
