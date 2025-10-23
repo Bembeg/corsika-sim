@@ -2,3 +2,5 @@ output/
 plots/
 .timer*
 fort*
+nohup*
+*.tar*
