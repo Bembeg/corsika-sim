@@ -92,7 +92,8 @@ for output in outputs:
         print(" - found", mismatch, "mismatch(es)\n")
 
     # Parse simulation label
-    label = output.split("/")[1]
+    plot_name = output.split("/")[1]
+    label = plot_name.replace("_prof", "").replace("pdg2212","proton").replace("pdg22","gamma")
     
     # Plot functions per run
     fig, ax = plt.subplots()
@@ -125,4 +126,4 @@ for output in outputs:
     ax.legend(fontsize=8)
     
     # Save plot
-    plt.savefig("plots/" + label + ".png", dpi=600)
+    plt.savefig("plots/" + plot_name + ".png", dpi=600)
