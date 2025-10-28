@@ -62,8 +62,11 @@ PARTICLES=(2212 22)
 # Primary energies to simulate (in GeV), corresponding to CTA energy range 20 GeV - 300 TeV
 ENERGIES=(10 100 500)
 
-# Number of shower repetitions for each configuration
-REPS=10
+# Number of showers in each simulation
+SHOWERS=1
+
+# Number of runs for each configuration
+RUNS=10
 
 echo "Running shower simulations:"
 
@@ -77,8 +80,8 @@ for PART in ${PARTICLES[@]}; do
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}"
         fi
 
-        for N in $(seq 0 1 $((REPS-1))); do
-            echo -en "\033[2K\r    Primary particle PDG: $PART, energy: $ENE GeV, running $((N+1))/$REPS"
+        for N in $(seq 0 1 $((RUNS-1))); do
+            echo -en "\033[2K\r    Primary particle PDG: $PART, energy: $ENE GeV, running $((N+1))/$RUNS"
 
             RUN_OUTPUT=${SIM_OUTPUT}/run_$N
 
@@ -93,7 +96,7 @@ for PART in ${PARTICLES[@]}; do
                 # Run Corsika with valgrind profiling
                 valgrind --tool=callgrind --callgrind-out-file=${SIM_OUTPUT}_${N}.prof --cache-sim=no \
                     ${C8_EXEC} \
-                        --nevent 1 \
+                        --nevent $SHOWERS \
                         --pdg $PART \
                         -E $ENE \
                         -f ${RUN_OUTPUT} \
@@ -101,7 +104,7 @@ for PART in ${PARTICLES[@]}; do
             else      
                 # Run Corsika
                 ${C8_EXEC} \
-                    --nevent 1 \
+                    --nevent $SHOWERS \
                     --pdg $PART \
                     -E $ENE \
                     -f ${RUN_OUTPUT} \
@@ -150,7 +153,7 @@ for PART in ${PARTICLES[@]}; do
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}"
         fi
 
-        for N in $(seq 0 1 $((REPS-1))); do
+        for N in $(seq 0 1 $((RUNS-1))); do
             mv ${SIM_OUTPUT}_${N}.prof ${SIM_OUTPUT}/run_$N/run.prof 2>/dev/null
             mv ${SIM_OUTPUT}_${N}.log ${SIM_OUTPUT}/run_$N/run.log 2>/dev/null
             # echo "  PDG: $PART, energy: $ENE, $(cat ${RUN_OUTPUT}/summary.yaml | grep "runtime:")"
