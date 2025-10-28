@@ -110,7 +110,7 @@ for sim in os.listdir("output/"):
         cst = [fct.cst for fct in results[r]]
         fct = [fct.fn for fct in results[r]]
         # Plot this run
-        ax.plot(range(len(cst)), cst, label="run"+str(r)+" ("+str(round(sum(cst),1))+"%)", linewidth=1, linestyle="solid", marker="x")
+        ax.plot(range(1, len(cst)+1), cst, label="run"+str(r)+" ("+str(round(sum(cst),1))+"%)", linewidth=1, linestyle="solid", marker="x")
 
     # List functions and corresponding libs
     for f in range(n_fct):
