@@ -12,6 +12,9 @@ class Result(NamedTuple):
     lib: str
 
 
+# Make directory for plots
+os.makedirs("plots")
+
 # Iterate over callgrind annotate outputs
 for sim in os.listdir("output/"):
     print("Dir", sim)

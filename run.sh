@@ -53,6 +53,9 @@ C8_EXEC="${MAIN_DIR}/corsika/install/bin/c8_air_shower"
 # Output directory
 OUTPUT_DIR="${PWD}/output"
 
+# Make output directory
+mkdir -p ${OUTPUT_DIR}
+
 # Enter C8 environment
 source ${MAIN_DIR}/setup.sh
 
@@ -135,9 +138,9 @@ done
 echo "Waiting for simulations to finish"
 
 # Keep checking running processes
-keep_checking
+# keep_checking
 
-# Probably unnecessary to also wait
+# Wait for all simulations to finish
 wait
 
 echo "All done"
