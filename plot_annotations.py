@@ -13,7 +13,7 @@ class Result(NamedTuple):
 
 
 # Make directory for plots
-os.makedirs("plots")
+os.makedirs("plots", exist_ok=True)
 
 # Iterate over callgrind annotate outputs
 for sim in os.listdir("output/"):
@@ -22,6 +22,10 @@ for sim in os.listdir("output/"):
     output = "output/" + sim + "/annotate.txt"
 
     print("Processing output '", output, "'", sep="")
+
+    if not os.path.isfile(output):
+        print("No annotate file, skipping")
+        continue
 
     # Open output file and read lines
     with open(output, "r") as f:
