@@ -30,8 +30,18 @@ for dir in output_types.keys():
 # Current shower id, used for shifting shower indices
 id_shw = 0
 
+# List of subdirectories
+dir_list = os.listdir(output_dir)
+# Filter only run directories
+for dir in dir_list:
+    if "run" not in dir:
+        dir_list.remove(dir)
+
+# Number of run subdirectories
+n_dirs = len(dir_list)
+
 # Iterate over runs in this simulation
-for run in range(len(os.listdir(output_dir))-1):
+for run in range(n_dirs):
     print("Processing run", run)
     
     # Open summary file to read number of showers

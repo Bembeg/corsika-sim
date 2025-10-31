@@ -4,7 +4,7 @@
 # Directory with simulation outputs
 OUTPUT_DIR=${PWD}/output
 
-# Number of highest functions to annotate
+# Number of costliest functions to annotate
 FUNCS=10
 
 for SIM in $(ls ${OUTPUT_DIR}); do
