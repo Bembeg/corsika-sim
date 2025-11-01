@@ -32,23 +32,24 @@ id_shw = 0
 
 # List of subdirectories
 dir_list = os.listdir(output_dir)
+n_fake = 0
 # Filter only run directories
 for dir in dir_list:
     if "run" not in dir:
-        dir_list.remove(dir)
+        n_fake += 1
 
 # Number of run subdirectories
-n_dirs = len(dir_list)
+n_dirs = len(dir_list) - n_fake
 
 # Iterate over runs in this simulation
 for run in range(n_dirs):
-    print("Processing run", run)
-    
+    # print("Processing run", run)
+
     # Open summary file to read number of showers
     with open(output_dir + "/run_" + str(run) + "/summary.yaml", "r") as file:
         first_line = file.readline()
         n_shw = int(first_line.split()[1])
-        print("  - showers = ", n_shw)
+        # print("  - showers = ", n_shw)
 
     # Shift shower index
     id_shw += n_shw
@@ -57,7 +58,7 @@ for run in range(n_dirs):
 
     # Iterate over output directories and files
     for dir, file in output_types.items():
-        print("  - processing output dir '", dir, "' (file '", file, ".parquet')", sep="")
+        # print("  - processing output dir '", dir, "' (file '", file, ".parquet')", sep="")
 
         # Compose output file name
         output_file = output_dir + "/run_" + str(run) + "/" + dir + "/" + file + ".parquet"
@@ -72,7 +73,7 @@ for run in range(n_dirs):
 for dir, file in output_types.items():
     # Make a directory for the merged output
     os.makedirs(output_dir + "/merged/" + dir, exist_ok=True)
-    
+
     # Merge dataframes from all runs
     df_merge = pd.concat(data[dir])
 
