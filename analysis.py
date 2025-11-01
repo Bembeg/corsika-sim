@@ -4,82 +4,121 @@
 import pandas as pd
 import os
 import sys
-import matplotlib as plt
+from matplotlib import pyplot as plt
+
+def print_usage():
+    print("Usage")
 
 def energyloss():
-    print("Running energy loss analysis")
+    print("1) Running energy loss analysis")
 
-    # Calculate Edep mean and SEM
-    res = data["energyloss"].groupby("X").agg({"total":["mean", "sem"]})
-    res.columns = res.columns.map('_'.join)
-    res = res.reset_index()
+    res = {}
 
-    # Plot
-    fig = res[res["X"] < X_limit].plot("X", "total_mean", yerr="total_sem", figsize=(6,4),
-          title="Total energy loss", grid=False, xlabel="X [g/cm$^2$]", ylabel="Energy loss [GeV]", legend=False)
-    plot_path = plot_dir + "energyloss.png"
-    fig.get_figure().savefig(plot_path, dpi=300)
+    fig, ax = plt.subplots()
+
+    for path in sim_dir:
+        name = path.split("/")[1]
+        color = colors[sim_dir.index(path)]
+
+        res[path] = data[path]["energyloss"].groupby("X").agg({"total":["mean", "sem"]})
+        res[path].columns = res[path].columns.map('_'.join)
+        res[path] = res[path].reset_index()
+
+        res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Total energy loss",
+                                                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
+                                                ax=ax, legend=plot_legend, label=name, color=color)
+
+    ax.grid(ls="dashed", c="0.85")
+
+    plot_path = plot_dir + "eloss.png"
+    fig.savefig(plot_path, dpi=300)
     print("  - generated plot '", plot_path + "'", sep="")
 
 def interactions():
-    print("Running interactions analysis")
+    print("2) Running interactions analysis")
 
 def production():
-    print("Running production analysis")
-    
-    # print(data["production_profile"]["electron-positron"].sum())
+    print("3) Running production analysis")
 
-    # Calculate Edep mean and SEM
-    res = data["production_profile"].groupby("X").agg(["mean", "sem"])
-    res.columns = res.columns.map('_'.join)
-    res = res.reset_index()
+    cols = ["electron-positron", "muon", "photon", "hadron"]
+    label = [r"$N_{e^{\pm}}", r"$N_{\mu^{\pm}}", r"$N_{\gamma}", r"$N_{hadr.}"]
+    title = [r"$e^{\pm}$", r"$\mu^{\pm}$", "photons", "hadrons"]
+    tag = ["ep", "muon", "photon", "hadron"]
 
-    # Plot 
-    fig = res[res["X"] < X_limit].plot(x="X", y=["electron-positron_mean", "muon_mean", "photon_mean", "hadron_mean"],
-        figsize=(6,4), title="Avg. particles produced per shower", grid=False, xlabel="X [g/cm$^2$]", ylabel="Particle production", logy=True)
-    fig.legend([r"$e^{\pm}$", r"$\mu^{\pm}$", r"$\gamma$", "hadr."])
-   
-    plot_path = plot_dir + "prod.png"
-    fig.get_figure().savefig(plot_path, dpi=300)
-    print("  - generated plot '", plot_path + "'", sep="")
+    res = {}
+
+    for path in sim_dir:
+        res[path] = data[path]["production_profile"].groupby("X").agg(["mean", "sem"])
+        res[path].columns = res[path].columns.map('_'.join)
+        res[path] = res[path].reset_index()
+
+    for n in range(len(cols)):
+        fig, ax = plt.subplots()
+
+        for path in sim_dir:
+            name = path.split("/")[1]
+            color = colors[sim_dir.index(path)]
+
+            res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Avg. number of " + title[n] + " produced per shower",
+                                                    grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n] + "^{prod}$", marker=".",
+                                                    ax=ax, legend=plot_legend, label=name, color=color)
+
+        ax.grid(ls="dashed", c="0.85")
+
+        plot_path = plot_dir + "prod_" + tag[n] + ".png"
+        fig.savefig(plot_path, dpi=300)
+        print("  - generated plot '", plot_path + "'", sep="")
 
 def profile():
-    print ("Running longitudinal profile analysis")
-    
-    # Calculate Edep mean and SEM
-    data["profile"]["muon"] = data["profile"]["muplus"] + data["profile"]["muminus"]
-    data["profile"]["ep"] = data["profile"]["electron"] + data["profile"]["positron"]
+    print ("4) Running longitudinal profile analysis")
 
-    res = data["profile"].groupby("X").agg(["mean", "sem"])
-    res.columns = res.columns.map('_'.join)
-    res = res.reset_index()
-    # print(res)
+    cols = ["ep", "muon", "photon", "hadron"]
+    label = [r"$N_{e^{\pm}}$", r"$N_{\mu^{\pm}}$", r"$N_{\gamma}$", r"$N_{hadr.}$"]
+    title = [r"$e^{\pm}$", r"$\mu^{\pm}$", "photons", "hadrons"]
+    tag = ["ep", "muon", "photon", "hadron"]
 
-    # Plot 
-    fig = res[res["X"] < X_limit].plot(x="X", y=["ep_mean", "muon_mean", "photon_mean", "hadron_mean"],
-        figsize=(6,4), title="Longitudinal shower profile", grid=False, xlabel="X [g/cm$^2$]", ylabel="Particle population", logy=True)
-    fig.legend([r"$e^{\pm}$", r"$\mu^{\pm}$", r"$\gamma$", "hadr."])
-   
-    plot_path = plot_dir + "profile.png"
-    fig.get_figure().savefig(plot_path, dpi=300)
-    print("  - generated plot '", plot_path + "'", sep="")
+    res = {}
+
+    for path in sim_dir:
+        data[path]["profile"]["muon"] = data[path]["profile"]["muplus"] + data[path]["profile"]["muminus"]
+        data[path]["profile"]["ep"] = data[path]["profile"]["electron"] + data[path]["profile"]["positron"]
+
+        res[path] = data[path]["profile"].groupby("X").agg(["mean", "sem"])
+        res[path].columns = res[path].columns.map('_'.join)
+        res[path] = res[path].reset_index()
+
+    for n in range(len(cols)):
+        fig, ax = plt.subplots()
+
+        for path in sim_dir:
+            name = path.split("/")[1]
+            id = sim_dir.index(path)
+            if (id == 0): name += " (ref)"
+            color = colors[id]
+
+            res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Longitudinal profile - " + title[n],
+                                                    grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n], marker=".",
+                                                    ax=ax, legend=plot_legend, label=name, color=color)
+
+        ax.grid(ls="dashed", c="0.85")
+
+        plot_path = plot_dir + "profile_" + tag[n] + ".png"
+        fig.savefig(plot_path, dpi=300)
+        print("  - generated plot '", plot_path + "'", sep="")
+
+
+# Check if any arguments were passed
+if len(sys.argv) == 1:
+    print("No simulation name(s) passed")
+    print_usage()
+    exit(1)
 
 # Limit max X in plots
 X_limit = 1500
 
-# Directory with simulation outputs
-sim_name = sys.argv[1]
-sim_dir = "output/" + sim_name + "/merged/"
-
-# Check if merged directory exists
-if not os.path.exists(sim_dir):
-    print("Dir does not exist")
-
-plot_dir = "plots/" + sim_name + "/"
-
+# Plot directory
+plot_dir = "plots/out1/"
 os.makedirs(plot_dir, exist_ok=True)
-
-print ("Simulation data dir: '", sim_dir, "'", sep="")
 
 # Map modules and output files inside
 output_types = {"energyloss": "dEdX",
@@ -88,18 +127,60 @@ output_types = {"energyloss": "dEdX",
                 "production_profile": "profile",
                 "profile": "profile"}
 
+colors=("firebrick", "mediumblue", "green", "blueviolet")
+
+# ---- END OF INPUT ----
+
 # Declare dictionaries to hold dataframes
 data = {}
 
+print("Passed ", len(sys.argv)-1, " argument(s), verifying run validity:", sep="")
+
+sim_dir = []
+for sim_name in sys.argv[1:]:
+    print("  -", sim_name, end=": ")
+
+    # Check if merged directory exists
+    path = "output/" + sim_name + "/merged/"
+    if os.path.exists(path):
+        sim_dir.append(path)
+        data[path] = {}
+        print("OK - merged directory found, path: '", path, "'", sep="")
+        continue
+
+    # If no merged dir, check if corsika output directories exist
+    path = "output/" + sim_name + "/"
+    if os.path.exists(path + "summary.yaml"):
+        sim_dir.append(path)
+        data[path] = {}
+        print("OK - output directories found, path: '", path, "'", sep="")
+        continue
+
+    print("ERR - invalid name (no merged or direct output)")
+    exit(1)
+
+print("Found", len(sim_dir), "valid runs")
+
+plot_legend = False
+if (len(sim_dir) > 1):
+    print("Using run \'", sim_dir[0].split("/")[1], "\' as reference", sep="")
+    plot_legend=True
+
 # Iterate over output directories and files
-for mod, file in output_types.items():
-    print("  - processing module '", mod, "' (file '", file, ".parquet')", sep="")
+for path in sim_dir:
+    # print("- processing run '", path, "'", sep="")
 
-    # Compose sim file name
-    sim_file = sim_dir + mod + "/" + file + ".parquet"
+    for mod, file in output_types.items():
+        # print("   - processing module '", mod, "' (file '", path+mod+"/"+file, ".parquet')", sep="")
 
-    # Read from parquet file as dataframe
-    data[mod] = pd.read_parquet(sim_file, "pyarrow")
+        # Compose sim file name
+        sim_file = path + mod + "/" + file + ".parquet"
+
+        # Read from parquet file as dataframe
+        data[path][mod] = pd.read_parquet(sim_file, "pyarrow")
+
+
+print("Loaded data")
 
 # Analysis
 energyloss()
