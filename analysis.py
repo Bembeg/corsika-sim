@@ -12,24 +12,36 @@ def print_usage():
 def energyloss():
     print("1) Running energy loss analysis")
 
+    # Dictionary for dataframes
     res = {}
 
+    # Create figure
     fig, ax = plt.subplots()
 
+    # Iterate over runs
     for path in sim_dir:
+        # Parse run name
         name = path.split("/")[1]
-        color = colors[sim_dir.index(path)]
+        # Get index of this run
+        id = sim_dir.index(path)
+        # If this run is ref, add that to its name
+        if (id == 0): name += " (ref)"
+        # Get color
+        color = colors[id]
 
+        # Calculate means and SEMs for columns
         res[path] = data[path]["energyloss"].groupby("X").agg({"total":["mean", "sem"]})
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
+        # Plot
         res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Total energy loss",
                                                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
                                                 ax=ax, legend=plot_legend, label=name, color=color)
-
+    # Add grid
     ax.grid(ls="dashed", c="0.85")
 
+    # Plot and save
     plot_path = plot_dir + "eloss.png"
     fig.savefig(plot_path, dpi=300)
     print("  - generated plot '", plot_path + "'", sep="")
@@ -40,31 +52,44 @@ def interactions():
 def production():
     print("3) Running production analysis")
 
+    # Define which columns to plot and corresponding labels, titles and tags
     cols = ["electron-positron", "muon", "photon", "hadron"]
     label = [r"$N_{e^{\pm}}", r"$N_{\mu^{\pm}}", r"$N_{\gamma}", r"$N_{hadr.}"]
     title = [r"$e^{\pm}$", r"$\mu^{\pm}$", "photons", "hadrons"]
     tag = ["ep", "muon", "photon", "hadron"]
 
+    # Dictionary for dataframes
     res = {}
 
+    # Iterate over runs and calculate means and SEMs for columns
     for path in sim_dir:
         res[path] = data[path]["production_profile"].groupby("X").agg(["mean", "sem"])
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
+    # Iterate over plots
     for n in range(len(cols)):
+        # Create figure
         fig, ax = plt.subplots()
 
+        # Iterate over runs and generate plots
         for path in sim_dir:
+            # Parse run name
             name = path.split("/")[1]
-            color = colors[sim_dir.index(path)]
+            # Get index of this run
+            id = sim_dir.index(path)
+            # If this run is ref, add that to its name
+            if (id == 0): name += " (ref)"
+            # Get color
+            color = colors[id]
 
             res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Avg. number of " + title[n] + " produced per shower",
                                                     grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n] + "^{prod}$", marker=".",
                                                     ax=ax, legend=plot_legend, label=name, color=color)
-
+        # Add grid
         ax.grid(ls="dashed", c="0.85")
 
+        # Plot and save
         plot_path = plot_dir + "prod_" + tag[n] + ".png"
         fig.savefig(plot_path, dpi=300)
         print("  - generated plot '", plot_path + "'", sep="")
@@ -72,36 +97,50 @@ def production():
 def profile():
     print ("4) Running longitudinal profile analysis")
 
+    # Define which columns to plot and corresponding labels, titles and tags
     cols = ["ep", "muon", "photon", "hadron"]
     label = [r"$N_{e^{\pm}}$", r"$N_{\mu^{\pm}}$", r"$N_{\gamma}$", r"$N_{hadr.}$"]
     title = [r"$e^{\pm}$", r"$\mu^{\pm}$", "photons", "hadrons"]
     tag = ["ep", "muon", "photon", "hadron"]
 
+    # Dictionary for dataframes
     res = {}
 
+    # Iterate over runs and calculate means and SEMs for columns
     for path in sim_dir:
+        # Add values for positive and negative particles
         data[path]["profile"]["muon"] = data[path]["profile"]["muplus"] + data[path]["profile"]["muminus"]
         data[path]["profile"]["ep"] = data[path]["profile"]["electron"] + data[path]["profile"]["positron"]
 
+        # Calculate means and SEMs for columns
         res[path] = data[path]["profile"].groupby("X").agg(["mean", "sem"])
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
+    # Iterate over plots
     for n in range(len(cols)):
+        # Create figure
         fig, ax = plt.subplots()
 
+        # Iterate over runs and generate plots
         for path in sim_dir:
+            # Parse run name
             name = path.split("/")[1]
+            # Get index of this run
             id = sim_dir.index(path)
+            # If this run is ref, add that to its name
             if (id == 0): name += " (ref)"
+            # Get color
             color = colors[id]
 
+            # Plot
             res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Longitudinal profile - " + title[n],
                                                     grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n], marker=".",
                                                     ax=ax, legend=plot_legend, label=name, color=color)
-
+        # Add grid
         ax.grid(ls="dashed", c="0.85")
 
+        # Plot and save
         plot_path = plot_dir + "profile_" + tag[n] + ".png"
         fig.savefig(plot_path, dpi=300)
         print("  - generated plot '", plot_path + "'", sep="")
@@ -127,6 +166,7 @@ output_types = {"energyloss": "dEdX",
                 "production_profile": "profile",
                 "profile": "profile"}
 
+# Colors in plots
 colors=("firebrick", "mediumblue", "green", "blueviolet")
 
 # ---- END OF INPUT ----
@@ -136,6 +176,7 @@ data = {}
 
 print("Passed ", len(sys.argv)-1, " argument(s), verifying run validity:", sep="")
 
+# Check whether run directories are valid
 sim_dir = []
 for sim_name in sys.argv[1:]:
     print("  -", sim_name, end=": ")
@@ -161,6 +202,7 @@ for sim_name in sys.argv[1:]:
 
 print("Found", len(sim_dir), "valid runs")
 
+# If plotting multiple runs, enable plot legend
 plot_legend = False
 if (len(sim_dir) > 1):
     print("Using run \'", sim_dir[0].split("/")[1], "\' as reference", sep="")

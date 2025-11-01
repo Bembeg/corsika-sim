@@ -32,8 +32,9 @@ id_shw = 0
 
 # List of subdirectories
 dir_list = os.listdir(output_dir)
-n_fake = 0
+
 # Filter only run directories
+n_fake = 0
 for dir in dir_list:
     if "run" not in dir:
         n_fake += 1
