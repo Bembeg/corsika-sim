@@ -4,3 +4,4 @@ plots/
 fort*
 nohup*
 *.tar*
+.vscode

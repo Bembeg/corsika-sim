@@ -6,6 +6,7 @@ import os
 import sys
 from matplotlib import pyplot as plt
 
+
 def print_usage():
     print("Usage")
 
@@ -145,6 +146,99 @@ def profile():
         fig.savefig(plot_path, dpi=300)
         print("  - generated plot '", plot_path + "'", sep="")
 
+def observation():
+    print("5) Running observation plane analysis")
+
+    # Define which columns to plot and corresponding labels, titles and tags
+    pdg=[11, 13, 22, 100]
+    cols = ["ep", "muon", "photon", "hadron"]
+    title = [r"$e^{\pm}$", r"$\mu^{\pm}$", "photons", "hadrons"]
+    tag = ["ep", "muon", "photon", "hadron"]
+
+    # Dictionary for dataframes
+    res = {}
+
+    # Iterate over runs
+    for path in sim_dir:
+        # Calculate R from (x,y)
+        data[path]["particles"]["R"] = pow(pow(data[path]["particles"]["x"],2) + pow(data[path]["particles"]["y"],2), 0.5)
+
+        res[path] = data[path]["particles"]
+
+    # Plotting of kinetic energy
+    for n in range(len(cols)):
+        # Create figure
+        fig, ax = plt.subplots()
+
+        # Iterate over runs and generate plots
+        for path in sim_dir:
+            # Get index of this run
+            id = sim_dir.index(path)
+            # Get color
+            color = colors[id]
+
+            # Get 95th percentile for kinetic energy
+            T_max = max(0, res[path][abs(res[path]["pdg"]) == pdg[n]]["kinetic_energy"].quantile(0.95))
+
+            # Plot
+            res[path][abs(res[path]["pdg"]) == pdg[n]].hist(column="kinetic_energy", ax=ax, bins=128, range=[0, T_max], color=color)
+
+        # Remove grid
+        ax.grid(False)
+
+        # Set title and axis labels
+        plt.title("Kinetic energy at observation plane - " + title[n])
+        plt.xlabel("$T$ [GeV]")
+        plt.ylabel("$N$")
+
+        # Set legend
+        legend = [name.split("/")[1] for name in sim_dir]
+        if (len(legend) > 1):
+            legend[0] += " (ref)"
+        plt.legend(legend)
+
+        # Plot and save
+        plot_path = plot_dir + "observ_Ekin_" + tag[n] + ".png"
+        fig.savefig(plot_path, dpi=300)
+        print("  - generated plot '", plot_path + "'", sep="")
+
+    # Plotting of radius
+    for n in range(len(cols)):
+        # Create figure
+        fig, ax = plt.subplots()
+
+        # Iterate over runs and generate plots
+        for path in sim_dir:
+            # Get index of this run
+            id = sim_dir.index(path)
+            # Get color
+            color = colors[id]
+
+            # Get 99th percentile for radius
+            R_max = max(0, res[path][abs(res[path]["pdg"]) == pdg[n]]["R"].quantile(0.99))
+
+            # Plot
+            res[path][abs(res[path]["pdg"]) == pdg[n]].hist(column="R", ax=ax, bins=128, range=[0, R_max],color=color)
+
+        # Remove grid
+        ax.grid(False)
+
+        # Set title and axis labels
+        plt.title("Radius at observation plane - " + title[n])
+        plt.xlabel("$R$ [m]")
+        plt.ylabel("$N$")
+
+        # Set legend
+        legend = [name.split("/")[1] for name in sim_dir]
+        if (len(legend) > 1):
+            legend[0] += " (ref)"
+        plt.legend(legend)
+
+        # Plot and save
+        plot_path = plot_dir + "observ_R_" + tag[n] + ".png"
+        fig.savefig(plot_path, dpi=300)
+        print("  - generated plot '", plot_path + "'", sep="")
+
 
 # Check if any arguments were passed
 if len(sys.argv) == 1:
@@ -153,7 +247,7 @@ if len(sys.argv) == 1:
     exit(1)
 
 # Limit max X in plots
-X_limit = 1500
+X_limit = 1200
 
 # Plot directory
 plot_dir = "plots/out1/"
@@ -167,7 +261,7 @@ output_types = {"energyloss": "dEdX",
                 "profile": "profile"}
 
 # Colors in plots
-colors=("firebrick", "mediumblue", "green", "blueviolet")
+colors=("firebrick", "mediumblue", "green", "goldenrod")
 
 # ---- END OF INPUT ----
 
@@ -229,3 +323,4 @@ energyloss()
 interactions()
 production()
 profile()
+observation()
