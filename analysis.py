@@ -26,7 +26,7 @@ def energyloss():
         # Get index of this run
         id = sim_dir.index(path)
         # If this run is ref, add that to its name
-        if (id == 0): name += " (ref)"
+        if (id == 0 and len(sim_dir)>1): name += " (ref)"
         # Get color
         color = colors[id]
 
@@ -38,7 +38,7 @@ def energyloss():
         # Plot
         res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Total energy loss",
                                                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
-                                                ax=ax, legend=plot_legend, label=name, color=color)
+                                                ax=ax, legend=True, label=name, color=color)
     # Add grid
     ax.grid(ls="dashed", c="0.85")
 
@@ -80,13 +80,13 @@ def production():
             # Get index of this run
             id = sim_dir.index(path)
             # If this run is ref, add that to its name
-            if (id == 0): name += " (ref)"
+            if (id == 0 and len(sim_dir)>1): name += " (ref)"
             # Get color
             color = colors[id]
 
             res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Avg. number of " + title[n] + " produced per shower",
                                                     grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n] + "^{prod}$", marker=".",
-                                                    ax=ax, legend=plot_legend, label=name, color=color)
+                                                    ax=ax, legend=True, label=name, color=color)
         # Add grid
         ax.grid(ls="dashed", c="0.85")
 
@@ -130,14 +130,14 @@ def profile():
             # Get index of this run
             id = sim_dir.index(path)
             # If this run is ref, add that to its name
-            if (id == 0): name += " (ref)"
+            if (id == 0 and len(sim_dir)>1): name += " (ref)"
             # Get color
             color = colors[id]
 
             # Plot
             res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Longitudinal profile - " + title[n],
                                                     grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n], marker=".",
-                                                    ax=ax, legend=plot_legend, label=name, color=color)
+                                                    ax=ax, legend=True, label=name, color=color)
         # Add grid
         ax.grid(ls="dashed", c="0.85")
 
@@ -295,12 +295,6 @@ for sim_name in sys.argv[1:]:
     exit(1)
 
 print("Found", len(sim_dir), "valid runs")
-
-# If plotting multiple runs, enable plot legend
-plot_legend = False
-if (len(sim_dir) > 1):
-    print("Using run \'", sim_dir[0].split("/")[1], "\' as reference", sep="")
-    plot_legend=True
 
 # Iterate over output directories and files
 for path in sim_dir:
