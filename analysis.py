@@ -8,16 +8,25 @@ from matplotlib import pyplot as plt
 
 
 def print_usage():
-    print("Usage")
+    print("Usage: python3 analysis.py [sim-names]")
+    print("Example: python3 analysis.py pdg22_E100 pdg22_E1000")
 
 def energyloss():
     print("1) Running energy loss analysis")
 
+    # Create figure
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
+    # Set vertical gap between subplots
+    plt.subplots_adjust(hspace=0.05)
+    # Set x-axis ticks for subplots
+    ax1.tick_params(axis='x', direction='in')
+    ax2.tick_params(axis='x', direction='in', top=True)
+    
     # Dictionary for dataframes
     res = {}
-
-    # Create figure
-    fig, ax = plt.subplots()
+    
+    # Mark first run as reference, used for ratio plots
+    ref = sim_dir[0]
 
     # Iterate over runs
     for path in sim_dir:
@@ -35,13 +44,23 @@ def energyloss():
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
-        # Plot
-        res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Total energy loss",
-                                                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
-                                                ax=ax, legend=True, label=name, color=color)
-    # Add grid
-    ax.grid(ls="dashed", c="0.85")
+        # Calculate ratio vs reference
+        res[path]["ratio"] = res[path]["total_mean"] / res[ref]["total_mean"]
 
+        # Plot main subplot
+        res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Avg. energy loss per shower",
+                                                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
+                                                ax=ax1, legend=True, label=name, color=color)
+        # Plot ratio subplot
+        res[path][res[path]["X"] < X_limit].plot(x="X", y="ratio", 
+                                                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio vs ref.", marker=".",
+                                                ax=ax2, legend=False, label=name, color=color)
+
+    # Add grid
+    ax1.grid(ls="dashed", c="0.85")
+    ax2.grid(ls="dashed", c="0.85")
+    # ax2.set_ylim([0, 2])
+    
     # Plot and save
     plot_path = plot_dir + "eloss.png"
     fig.savefig(plot_path, dpi=300)
@@ -61,6 +80,9 @@ def production():
 
     # Dictionary for dataframes
     res = {}
+    
+    # Mark first run as reference, used for ratio plots
+    ref = sim_dir[0]
 
     # Iterate over runs and calculate means and SEMs for columns
     for path in sim_dir:
@@ -68,10 +90,19 @@ def production():
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
+        # Calculate ratio vs reference
+        for col in cols:
+            res[path][col + "_ratio"] = res[path][col + "_mean"] / res[ref][col + "_mean"]
+
     # Iterate over plots
     for n in range(len(cols)):
         # Create figure
-        fig, ax = plt.subplots()
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
+        # Set vertical gap between subplots
+        plt.subplots_adjust(hspace=0.05)
+        # Set x-axis ticks for subplots
+        ax1.tick_params(axis='x', direction='in')
+        ax2.tick_params(axis='x', direction='in', top=True)
 
         # Iterate over runs and generate plots
         for path in sim_dir:
@@ -84,11 +115,18 @@ def production():
             # Get color
             color = colors[id]
 
+            # Plot main subplot
             res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Avg. number of " + title[n] + " produced per shower",
                                                     grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n] + "^{prod}$", marker=".",
-                                                    ax=ax, legend=True, label=name, color=color)
+                                                    ax=ax1, legend=True, label=name, color=color)
+            # Plot ratio subplot
+            res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_ratio", 
+                                                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio vs ref.", marker=".",
+                                                ax=ax2, legend=False, label=name, color=color)
         # Add grid
-        ax.grid(ls="dashed", c="0.85")
+        ax1.grid(ls="dashed", c="0.85")
+        ax2.grid(ls="dashed", c="0.85")
+        # ax2.set_ylim([0, 2])
 
         # Plot and save
         plot_path = plot_dir + "prod_" + tag[n] + ".png"
@@ -106,7 +144,10 @@ def profile():
 
     # Dictionary for dataframes
     res = {}
-
+    
+    # Mark first run as reference, used for ratio plots
+    ref = sim_dir[0]
+    
     # Iterate over runs and calculate means and SEMs for columns
     for path in sim_dir:
         # Add values for positive and negative particles
@@ -118,10 +159,19 @@ def profile():
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
+        # Calculate ratio vs reference
+        for col in cols:
+            res[path][col + "_ratio"] = res[path][col + "_mean"] / res[ref][col + "_mean"]
+
     # Iterate over plots
     for n in range(len(cols)):
         # Create figure
-        fig, ax = plt.subplots()
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
+        # Set vertical gap between subplots
+        plt.subplots_adjust(hspace=0.05)
+        # Set x-axis ticks for subplots
+        ax1.tick_params(axis='x', direction='in')
+        ax2.tick_params(axis='x', direction='in', top=True)
 
         # Iterate over runs and generate plots
         for path in sim_dir:
@@ -134,12 +184,20 @@ def profile():
             # Get color
             color = colors[id]
 
-            # Plot
+            # Plot main subplot
             res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Longitudinal profile - " + title[n],
                                                     grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n], marker=".",
-                                                    ax=ax, legend=True, label=name, color=color)
+                                                    ax=ax1, legend=True, label=name, color=color)
+
+            # Plot ratio subplot
+            res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_ratio", 
+                                                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio vs ref.", marker=".",
+                                                ax=ax2, legend=False, label=name, color=color)
+
         # Add grid
-        ax.grid(ls="dashed", c="0.85")
+        ax1.grid(ls="dashed", c="0.85")
+        ax2.grid(ls="dashed", c="0.85")
+        # ax2.set_ylim([0, 2])
 
         # Plot and save
         plot_path = plot_dir + "profile_" + tag[n] + ".png"
@@ -181,16 +239,17 @@ def observation():
             T_max = max(0, res[path][abs(res[path]["pdg"]) == pdg[n]]["kinetic_energy"].quantile(0.95))
 
             # Plot
-            res[path][abs(res[path]["pdg"]) == pdg[n]].hist(column="kinetic_energy", ax=ax, bins=128, range=[0, T_max], color=color)
+            res[path][abs(res[path]["pdg"]) == pdg[n]].hist(column="kinetic_energy", ax=ax, bins=128,
+            range=[0, T_max], color=color, log=True, histtype="step")
 
-        # Remove grid
-        ax.grid(False)
+        # Add grid
+        ax.grid(ls="dashed", c="0.85")
 
         # Set title and axis labels
         plt.title("Kinetic energy at observation plane - " + title[n])
         plt.xlabel("$T$ [GeV]")
         plt.ylabel("$N$")
-
+    
         # Set legend
         legend = [name.split("/")[1] for name in sim_dir]
         if (len(legend) > 1):
@@ -218,10 +277,10 @@ def observation():
             R_max = max(0, res[path][abs(res[path]["pdg"]) == pdg[n]]["R"].quantile(0.99))
 
             # Plot
-            res[path][abs(res[path]["pdg"]) == pdg[n]].hist(column="R", ax=ax, bins=128, range=[0, R_max],color=color)
+            res[path][abs(res[path]["pdg"]) == pdg[n]].hist(column="R", ax=ax, bins=128, range=[0, R_max], color=color, log=True, histtype="step")
 
-        # Remove grid
-        ax.grid(False)
+        # Add grid
+        ax.grid(ls="dashed", c="0.85")
 
         # Set title and axis labels
         plt.title("Radius at observation plane - " + title[n])
@@ -247,7 +306,7 @@ if len(sys.argv) == 1:
     exit(1)
 
 # Limit max X in plots
-X_limit = 1200
+X_limit = 1100
 
 # Plot directory
 plot_dir = "plots/out1/"
@@ -294,7 +353,7 @@ for sim_name in sys.argv[1:]:
     print("ERR - invalid name (no merged or direct output)")
     exit(1)
 
-print("Found", len(sim_dir), "valid runs")
+print("Found", len(sim_dir), "valid runs, loading data")
 
 # Iterate over output directories and files
 for path in sim_dir:
@@ -309,7 +368,6 @@ for path in sim_dir:
         # Read from parquet file as dataframe
         data[path][mod] = pd.read_parquet(sim_file, "pyarrow")
 
-
 print("Loaded data")
 
 # Analysis
@@ -318,3 +376,5 @@ interactions()
 production()
 profile()
 observation()
+
+print("All done")
