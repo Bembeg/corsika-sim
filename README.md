@@ -54,3 +54,14 @@ python3 merge_outputs.py pdg22_E100
 ```
 
 The script creates a directory `merged/` inside the simulation output directory and places all the merged parquet files there.
+
+## analysis.py
+Main python script for analysis of Corsika8 outputs. Generates plots of energy losses, longitudinal profiles, production plots and observation plane plots per particle type (electron/positron, muon, photon, hadron). Run with
+```shell
+python3 analysis.py [simulation_names]
+```
+E.g. for a comparison between 100 GeV and 1000 GeV gamma simulations produced using the `run.sh` script and with merged outputs using `merge_outputs.py`, type
+```shell
+python3 analysis pdg22_E100 pdg22_E1000
+```
+The script searches for `merged/` directory or the direct simulation output inside the directory `output/[simulation_name]`. If neither is found inside the directory, the program terminates.
