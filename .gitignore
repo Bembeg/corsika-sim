@@ -1,5 +1,6 @@
 output/
 plots/
+test*
 .timer*
 fort*
 nohup*
