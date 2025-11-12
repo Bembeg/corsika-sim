@@ -5,3 +5,7 @@ fort*
 nohup*
 *.tar*
 .vscode
+.env
+db_container.sh
+mongo-data/
+simulation-models/
