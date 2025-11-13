@@ -3,8 +3,8 @@
 
 print_usage() {
     echo "Usage:"
-    echo "  Run simulations: ./$0"
-    echo "  Run and profile: ./$0 --profile"
+    echo "  Run simulations: ./$0 [suffix]"
+    echo "  Run and profile: ./$0 [suffix] --profile"
 }
 
 get_threads() {
@@ -42,6 +42,9 @@ fi
 # PID of the main process
 MAIN_PID=$$
 
+# Suffix
+SUF=$1
+
 # Number of available threads
 # THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
 THREADS=4
@@ -78,9 +81,9 @@ for PART in ${PARTICLES[@]}; do
     for ENE in ${ENERGIES[@]}; do
         # Determine output directory name for this simulation
         if [ "$1" = "--profile" ]; then
-            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_prof"
+            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}_prof"
         else 
-            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}"
+            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}"
         fi
 
         for N in $(seq 0 1 $((RUNS-1))); do
@@ -151,9 +154,9 @@ for PART in ${PARTICLES[@]}; do
     for ENE in ${ENERGIES[@]}; do
         # Determine output directory name for this simulation
         if [ "$1" = "--profile" ]; then
-            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_prof"
+            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}_prof"
         else 
-            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}"
+            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}"
         fi
 
         for N in $(seq 0 1 $((RUNS-1))); do

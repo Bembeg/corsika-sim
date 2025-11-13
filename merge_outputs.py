@@ -42,15 +42,22 @@ for dir in dir_list:
 # Number of run subdirectories
 n_dirs = len(dir_list) - n_fake
 
+# Create a file with runtimes
+runtime_file = open(output_dir + "/merged/runtimes.csv", "w")
+# Write header
+runtime_file.write("run,showers,runtime\n")
+
 # Iterate over runs in this simulation
 for run in range(n_dirs):
-    # print("Processing run", run)
+    print("Processing run", run)
 
     # Open summary file to read number of showers
     with open(output_dir + "/run_" + str(run) + "/summary.yaml", "r") as file:
-        first_line = file.readline()
-        n_shw = int(first_line.split()[1])
-        # print("  - showers = ", n_shw)
+        content = file.readlines()
+        n_shw = int(content[0].split()[1])
+        runtime = float(content[5].split()[1])
+        print("  - showers = ", n_shw, "runtime = ", runtime)
+        runtime_file.write(",".join([str(run),str(n_shw),str(runtime),"\n"]))
 
     # Shift shower index
     id_shw += n_shw
@@ -69,6 +76,8 @@ for run in range(n_dirs):
 
         # Shift shower indices
         data[dir][run]["shower"] = data[dir][run]["shower"] + id_shw
+
+runtime_file.close()
 
 # Iterate over outputs to make merged files
 for dir, file in output_types.items():

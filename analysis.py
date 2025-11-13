@@ -298,6 +298,50 @@ def observation():
         fig.savefig(plot_path, dpi=300)
         print("  - generated plot '", plot_path + "'", sep="")
 
+def runtimes():
+    print("6) Running runtime analysis")
+    
+    # Dictionary for dataframes
+    res = {}
+    
+    # Iterate over runs
+    for path in sim_dir:
+        res[path] = data[path]["runtime"]
+        
+        res[path]["rt_per_sh"] = res[path]["runtime"] / res[path]["showers"]
+
+    # Create figure
+    fig, ax = plt.subplots()
+
+    # Iterate over runs and generate plots
+    for path in sim_dir:
+        # Get index of this run
+        id = sim_dir.index(path)
+        # Get color
+        color = colors[id]
+
+        # Plot
+        data[path]["runtime"].hist(column="rt_per_sh", ax=ax, bins=32, color=color, log=False, histtype="step")
+
+    # Add grid
+    ax.grid(ls="dashed", c="0.85")
+
+    # Set title and axis labels
+    plt.title("Runtime per shower")
+    plt.xlabel("Runtime [s]")
+    plt.ylabel("$N$")
+
+    # Set legend
+    legend = [name.split("/")[1] for name in sim_dir]
+    if (len(legend) > 1):
+        legend[0] += " (ref)"
+    plt.legend(legend)
+
+    # Plot and save
+    plot_path = plot_dir + "runtimes.png"
+    fig.savefig(plot_path, dpi=300)
+    print("  - generated plot '", plot_path + "'", sep="")
+
 
 # Check if any arguments were passed
 if len(sys.argv) == 1:
@@ -357,7 +401,7 @@ print("Found", len(sim_dir), "valid runs, loading data")
 
 # Iterate over output directories and files
 for path in sim_dir:
-    # print("- processing run '", path, "'", sep="")
+    # print("  - processing run '", path, "'", sep="")
 
     for mod, file in output_types.items():
         # print("   - processing module '", mod, "' (file '", path+mod+"/"+file, ".parquet')", sep="")
@@ -368,13 +412,18 @@ for path in sim_dir:
         # Read from parquet file as dataframe
         data[path][mod] = pd.read_parquet(sim_file, "pyarrow")
 
+    # Runtimes
+    data[path]["runtime"] = pd.read_csv(path + "/runtimes.csv", index_col=False)
+    print(data[path]["runtime"])
+
 print("Loaded data")
 
 # Analysis
-energyloss()
-interactions()
-production()
-profile()
-observation()
+# energyloss()
+# interactions()
+# production()
+# profile()
+# observation()
+runtimes()
 
 print("All done")
