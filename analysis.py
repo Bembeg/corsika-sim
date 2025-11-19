@@ -2,9 +2,11 @@
 # Script for analysis of Corsika8 outputs
 
 import pandas as pd
+import numpy as np
 import os
 import sys
 from matplotlib import pyplot as plt
+from scipy.stats import norm
 
 
 def print_usage():
@@ -51,6 +53,7 @@ def energyloss():
         res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Avg. energy loss per shower",
                                                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
                                                 ax=ax1, legend=True, label=name, color=color)
+    
         # Plot ratio subplot
         res[path][res[path]["X"] < X_limit].plot(x="X", y="ratio", 
                                                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio vs ref.", marker=".",
@@ -321,8 +324,8 @@ def runtimes():
         color = colors[id]
 
         # Plot
-        data[path]["runtime"].hist(column="rt_per_sh", ax=ax, bins=32, color=color, log=False, histtype="step")
-
+        data[path]["runtime"].hist(column="rt_per_sh", ax=ax, bins=24, color=color, log=False, histtype="step") 
+            
     # Add grid
     ax.grid(ls="dashed", c="0.85")
 
@@ -337,11 +340,41 @@ def runtimes():
         legend[0] += " (ref)"
     plt.legend(legend)
 
+    # More y-axis range to make room for the legend   
+    ax.set_ylim(ax.get_ylim()[0], 1.2*ax.get_ylim()[1])
+
+    # Current axis ranges
+    (ymin, ymax) = ax.get_ylim()
+    (xmin, xmax) = ax.get_xlim()
+    
+    # Starting y-position for annotations of gaussian means
+    y_label = (ymax-ymin)*0.04
+
+    # Iterate over runs and fit histograms
+    for path in sim_dir:
+        # Get index of this run
+        id = sim_dir.index(path)
+        # Get color
+        color = colors[id]
+
+        # Fit with gaussian
+        (mu, sigma) = norm.fit(data[path]["runtime"]["rt_per_sh"])
+        print("  - ", path.split("/")[1], " : mu=", "{:.4f}".format(mu),", sigma=", "{:.4f}".format(sigma), sep="")
+
+        # Draw vertical line at gaussian mean
+        plt.axvline(mu, ls="dashed", c=color, label="", lw=1)
+
+        # Annotate gaussian mean
+        plt.text(mu + (xmax-xmin)*0.007, 0 + y_label, str("{:.2f}".format(mu)), bbox=dict(boxstyle='square,pad=0.15',
+            color=("white",0.9)), color=color)
+
+        # Push y-position for gaussian mean annotations
+        y_label += (ymax-ymin)*0.06
+
     # Plot and save
     plot_path = plot_dir + "runtimes.png"
     fig.savefig(plot_path, dpi=300)
     print("  - generated plot '", plot_path + "'", sep="")
-
 
 # Check if any arguments were passed
 if len(sys.argv) == 1:
@@ -353,7 +386,7 @@ if len(sys.argv) == 1:
 X_limit = 1100
 
 # Plot directory
-plot_dir = "plots/out1/"
+plot_dir = "plots/out/"
 os.makedirs(plot_dir, exist_ok=True)
 
 # Map modules and output files inside
@@ -414,16 +447,15 @@ for path in sim_dir:
 
     # Runtimes
     data[path]["runtime"] = pd.read_csv(path + "/runtimes.csv", index_col=False)
-    print(data[path]["runtime"])
 
 print("Loaded data")
 
 # Analysis
-# energyloss()
-# interactions()
-# production()
-# profile()
-# observation()
+energyloss()
+interactions()
+production()
+profile()
+observation()
 runtimes()
 
 print("All done")
