@@ -34,7 +34,7 @@ model_Linsley = [[4, 1222.6562, 994186.38],
                  [100, 540.1778, 772170.16]]
 
 # Load atmosphere csv
-par = pd.read_csv("AtmoUSStd.csv")
+par = pd.read_csv("data/AtmoUSStd.csv")
 
 # Empty array for fit model
 model_fit = []
