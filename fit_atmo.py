@@ -33,6 +33,23 @@ model_Linsley = [[4, 1222.6562, 994186.38],
                  [40, 1305.5948, 636143.04],
                  [100, 540.1778, 772170.16]]
 
+model_opt = [[3, 1242.8856, 1014510.54],
+            [7, 1168.5962, 928445.41],
+            [11, 1143.0824, 837817.65],
+            [16, 1306.6105, 637130.11],
+            [22, 1305.8958, 637199.08],
+            [28, 1315.8478, 633553.13],
+            [35, 1232.0029, 646640.96],
+            [40, 1057.1476, 668578.95],
+            [45, 845.4810, 700320.13],
+            [50, 500.8463, 775301.57],
+            [61, 333.2669, 839035.22],
+            [70, 706.0280, 750139.00],
+            [80, 1472.04, 688766.00],
+            [90, 1459.04, 684486.00],
+            [100, 1503.71, 668322.00],
+            [112.8, 1681.46, 650000.0]]
+
 # Load atmosphere csv
 par = pd.read_csv("data/AtmoUSStd.csv")
 
@@ -76,10 +93,12 @@ plt.subplots_adjust(hspace=0.05)
 # Calculate density from C7 and fit models
 par["dens_USStd"] = [calculate_density(H, model_USStd) for H in par["altitude"]]
 par["dens_Linsley"] = [calculate_density(H, model_Linsley) for H in par["altitude"]]
+par["dens_opt"] = [calculate_density(H, model_opt) for H in par["altitude"]]
 par["dens_fit"] = [calculate_density(H, model_fit) for H in par["altitude"]]
 # Calculate ratio to reference
 par["ratio_USStd"] = par["dens_USStd"] / par["density"]
 par["ratio_Linsley"] = par["dens_Linsley"] / par["density"]
+par["ratio_opt"] = par["dens_opt"] / par["density"]
 par["ratio_fit"] = par["dens_fit"] / par["density"]
 
 # Calculate fit chi2 in several altitude ranges
@@ -93,18 +112,20 @@ for H in range(0,100,20):
     # Fit chi2 for models
     chi2_USStd = sum([pow(abs(x-1),2) for x in par["ratio_USStd"][(par["altitude"] >= H) & (par["altitude"] < H+20)]]) / n_points
     chi2_Linsley = sum([pow(abs(x-1),2) for x in par["ratio_Linsley"][(par["altitude"] >= H) & (par["altitude"] < H+20)]]) / n_points
+    chi2_opt = sum([pow(abs(x-1),2) for x in par["ratio_opt"][(par["altitude"] >= H) & (par["altitude"] < H+20)]]) / n_points
     chi2_fit = sum([pow(abs(x-1),2) for x in par["ratio_fit"][(par["altitude"] >= H) & (par["altitude"] < H+20)]]) / n_points 
     
     # Print fit chi2
     print("   USStd: {:.8f}".format(chi2_USStd), " (", round(chi2_USStd/chi2_fit, 2), "x)", sep="")
     print(" Linsley: {:.8f}".format(chi2_Linsley), " (", round(chi2_Linsley/chi2_fit, 2), "x)", sep="")
+    print("     Opt: {:.8f}".format(chi2_opt), " (", round(chi2_opt/chi2_fit, 2), "x)", sep="")
     print("     Fit: {:.8f}".format(chi2_fit), " (-)", sep="")
 
 # Plot density plot
-par.plot(x="altitude", y=["dens_USStd", "dens_Linsley", "dens_fit", "density"], ax=ax1,
-    label=["C8 US-std-BK", "C8 Linsley", "fit", "tab. US-std"], xlabel="Altitude [km]", ylabel="Density [kg/m$^3$]")
+par.plot(x="altitude", y=["dens_USStd", "dens_Linsley", "dens_opt", "density"], ax=ax1,
+    label=["C8 US-std-BK", "C8 Linsley", "Best fit", "tab. US-std"], xlabel="Altitude [km]", ylabel="Density [kg/m$^3$]")
 # Ratio plot
-par.plot(x="altitude", y=["ratio_USStd", "ratio_Linsley", "ratio_fit"], ax=ax2,
+par.plot(x="altitude", y=["ratio_USStd", "ratio_Linsley", "ratio_opt"], ax=ax2,
     xlabel="Altitude [km]", ylabel="model / tab.", legend=False)
 
 # Set x-axis ticks for subplots
@@ -137,7 +158,9 @@ for set in model_USStd:
     plt.axvline(set[0], ls="dashed", lw=0.6, c="tab:blue")
 for set in model_Linsley:
     plt.axvline(set[0], ls="dashed", lw=0.6, c="tab:orange")
-for set in model_fit:
+# for set in model_fit:
+#     plt.axvline(set[0], ls="dashed", lw=0.6, c="tab:green")
+for set in model_opt:
     plt.axvline(set[0], ls="dashed", lw=0.6, c="tab:green")
 
 # Axis ranges for altitude ranges
