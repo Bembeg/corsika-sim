@@ -1,0 +1,86 @@
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Positron , E = 0.07136294749867472 GeV 
+        Tracking pos: (3654.98 -6189.88 6.422e+06) m 
+        Tracking rad: 6.42201e+06 m 
+        Tracking alt: 51006.5 m 
+        Tracking   p: (0.00215896 -0.0562646 -0.0438411) [] GeV 
+        Tracking   v: (9.06968e+06 -2.36365e+08 -1.84174e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:98)] gyroradius 4758.52 m, steplimit: 1853.06 m = 6.18129e-06 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555a6c33690, numericallyInside=true 
+[corsika:debug   (Intersect.inl:49)] intersection times with currentLogicalVolumeNode: entry=-1.3893433298938353e-05 s and exit=3.852982029989775e-05 s
+[corsika:debug   (Intersect.inl:65)] search intersection times with child volume 0x5555a6c334b0:
+[corsika:debug   (Intersect.inl:70)] children t-entry: 8.18935e-06 s, t-exit: 1.64777e-05 s, smaller? false 
+[corsika:debug   (Intersect.inl:108)] next time-intersect: 6.18129e-06 s, node 0x5555a6c33690 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 1853.0554402858827 m Medium transition after: 1853.0554402858827 m Decay after: inf m Interaction after: 23893.825201947737 m Continuous limit: 43017.53228521223 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Positron (-11), E_kin= 0.07053820046388767 GeV, E=0.07104919936388768 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:182)] total_lambda=2.8727962326556282 g/cm2, next_interact=4.346460409959195 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Positron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Positron , E = 0.07104919936388768 GeV 
+        Tracking pos: (3711.04 -7872.49 6.42115e+06) m 
+        Tracking rad: 6.42115e+06 m 
+        Tracking alt: 50154.2 m 
+        Tracking   p: (0.000618875 -0.0683492 -0.0193838) [] GeV 
+        Tracking   v: (2.61135e+06 -2.884e+08 -8.17898e+07) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:98)] gyroradius 4739.59 m, steplimit: 1845.68 m = 6.15669e-06 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555a6c33690, numericallyInside=true 
+[corsika:debug   (Intersect.inl:65)] search intersection times with child volume 0x5555a6c334b0:
+[corsika:debug   (Intersect.inl:70)] children t-entry: 2.72935e-06 s, t-exit: 6.18917e-06 s, smaller? true 
+[corsika:debug   (Intersect.inl:108)] next time-intersect: 2.72935e-06 s, node 0x5555a6c334b0 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 818.2187546627808 m Medium transition after: 818.2187546627808 m Decay after: inf m Interaction after: 51373.80559755546 m Continuous limit: 40868.61640208145 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Positron (-11), E_kin= 0.07039515543329496 GeV, E=0.07090615433329496 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:274)] volume boundary crossing to 0x5555a6c334b0
+[corsika:debug   (Cascade.inl:182)] total_lambda=2.873520972651024 g/cm2, next_interact=0.8016643893549832 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Positron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Positron , E = 0.07090615433329496 GeV 
+        Tracking pos: (3718.17 -8678.9 6.42099e+06) m 
+        Tracking rad: 6.421e+06 m 
+        Tracking alt: 50000 m 
+        Tracking   p: (0.00116465 -0.0705133 -0.00734461) [] GeV 
+        Tracking   v: (4.92415e+06 -2.98131e+08 -3.10531e+07) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:98)] gyroradius 4729.59 m, steplimit: 1841.79 m = 6.1437e-06 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555a6c334b0, numericallyInside=false 
+[corsika:debug   (Intersect.inl:32)] Ohmy
+[corsika:debug   (Intersect.inl:49)] intersection times with currentLogicalVolumeNode: entry=0 s and exit=0.004379313162399818 s
+[corsika:debug   (Intersect.inl:65)] search intersection times with child volume 0x5555a6c332d0:
+[corsika:debug   (Intersect.inl:108)] next time-intersect: 6.1437e-06 s, node 0x5555a6c334b0 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 1841.788145483803 m Medium transition after: 1841.788145483803 m Decay after: inf m Interaction after: 9646.906648478822 m Continuous limit: 41527.66564857513 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Positron (-11), E_kin= 0.07007418382118918 GeV, E=0.07058518272118919 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555a6c334b0 but are in numericalNodeAfterStep=0x5555a6c33690. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=2.8751551759395353 g/cm2, next_interact=1.9981663708816526 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Positron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Positron , E = 0.07058518272118919 GeV 
+        Tracking pos: (3748.42 -10547.7 6.42116e+06) m 
+        Tracking rad: 6.42117e+06 m 
+        Tracking alt: 50168.6 m 
+        Tracking   p: (0.000836148 -0.0681841 0.0182273) [] GeV 
+        Tracking   v: (3.55132e+06 -2.89594e+08 7.74159e+07) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:98)] gyroradius 4708.48 m, steplimit: 1833.57 m = 6.11629e-06 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555a6c334b0, numericallyInside=false 
+[corsika:debug   (Intersect.inl:32)] Ohmy
+[corsika:debug   (Intersect.inl:65)] search intersection times with child volume 0x5555a6c332d0:
+[corsika:debug   (Intersect.inl:108)] next time-intersect: 6.11629e-06 s, node 0x5555a6c334b0 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 1833.5691845611798 m Medium transition after: 1833.5691845611798 m Decay after: inf m Interaction after: 28232.397349904426 m Continuous limit: 48547.08777843381 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Positron (-11), E_kin= 0.06980207677040504 GeV, E=0.07031307567040504 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555a6c334b0 but are in numericalNodeAfterStep=0x5555a6c33690. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=2.87654950785903 g/cm2, next_interact=0.19369748588385566 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Positron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Positron , E = 0.07031307567040504 GeV 
+        Tracking pos: (3770.14 -12226.7 6.42198e+06) m 
+        Tracking rad: 6.42199e+06 m 
+        Tracking alt: 50990 m 
+        Tracking   p: (-5.47511e-05 -0.0569411 0.0412477) [] GeV 
+        Tracking   v: (-233441 -2.42779e+08 1.75867e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:98)] gyroradius 4690.66 m, steplimit: 1826.63 m = 6.09314e-06 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555a6c334b0, numericallyInside=false 
+[corsika:debug   (Intersect.inl:32)] Ohmy
+[corsika:debug   (TrackingLeapFrogCurved.inl:256)] no intersections found: count=0, first_entry=0, first_exit=0
