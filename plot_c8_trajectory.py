@@ -1,169 +1,129 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from skspatial.objects import Line, Point
-from skspatial.plotting import plot_2d
 from math import sqrt
 
-# Open logfile
-with open("data/log.txt", "r") as log:
+# Open and load logfile
+file = "log2"
+with open("data/" + file + ".txt", "r") as log:
     content = log.readlines()
-    # print(content)
 
-# Atmosphere layers
-atmo = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,32,34,36,38,40,42,44,46,48,50,55,60,65,70,75,80,85,90,95,100,110,115,120]
+# Atmosphere layer boundaries
+atmo = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+        28, 29, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100, 110, 115, 120]
 
-n_pt = 0
+# Number of points
 x = []
 y = []
 z = []
 rad = []
 nod = []
 ins = []
+x_proj = []
 
+# Parse log file
 for line in content:
+    # New point information starts with its position
     if "Tracking pos" in line:
-        n_pt += 1
-        print("New point [", n_pt, "]:", sep="")
+        print("New point [", len(x), "]:", sep="")
+
+        # Parse point position
         pos = line[line.index("(")+1:line.index(")")]
         print("  pos    :", pos)
+
+        # Add x,y,z positions to arrays
         x.append(float(pos.split()[0]))
         y.append(float(pos.split()[1]))
         z.append(float(pos.split()[2]))
+
+        # Calculate radius and add to array
         radius = sqrt(x[-1]**2 + y[-1]**2 + z[-1]**2)
         rad.append(radius)
         print("  radius :", radius)
         print("  alt    :", radius-6371000)
 
     if "volumeNode=" in line:
+        # Parse node identifier and add to array
         node = line[line.index("=")+1:line.index(",")]
-        print("  node   :", node)
         nod.append(node)
-        inside = line.rstrip()[line.rindex("=")+1:]
-        print("  inside :", inside)
-        inside_bool = True if inside == "true" else False
-        ins.append(inside_bool)
+        print("  node   :", node)
 
-proj_x = []
+        # Parse whether numerically inside the node
+        inside = line.rstrip()[line.rindex("=")+1:]
+        # Convert string to bool
+        inside_bool = True if inside == "true" else False
+        # and add to array
+        ins.append(inside_bool)
+        print("  inside :", inside)
+
+# Projection of position along the axis determined by the two furthest points
 fig, ax = plt.subplots()
 
-# Find furthest point from the first one
+# Max distance between any two points
 max_dist = 0
+# Indices of the two points
 p1 = 0
 p2 = 0
+
+# Find two points furthest apart
 for n in range(len(x)):
     for m in range(len(x)):
+        # Vector between the points
         v = np.array([x[m]-x[n], y[m]-y[n], z[m]-z[n]])
+
+        # Its norm
         v_norm = np.sqrt(sum(v**2))
+
+        # Update max distance
         if (v_norm > max_dist):
-            print("Largest distance for", m, "and", n,":",v_norm,sep="")
             max_dist = v_norm
             p1 = n
             p2 = m
-        
-print("Furthest two points: ", p1, p2)
 
+print("Furthest two points:", p1, "and",  p2)
+
+# Axis is the vector between the two furthest apart points
 axis = np.array([x[p2]-x[p1], y[p2]-y[p1], z[p2]-z[p1]])
-a_norm = np.sqrt(sum(axis**2))
+# Norm of the axis vector
+ax_norm = np.sqrt(sum(axis**2))
 
-# exit(0)
+# Plot individual points
 for n in range(len(x)):
+    # Vector to the point
     v = np.array([x[n]-x[p1], y[n]-y[p1], z[n]-z[p1]])
-    
-    # norm
+
+    # Its norm
     v_norm = np.sqrt(sum(v**2))
 
-    # projection
-    v_proj = (np.dot(axis, v)/v_norm**2)*v
+    x_proj.append(v_norm/ax_norm)
 
-    print("projection is ", v_proj)
-    print("projection norm is ", v_norm/a_norm)
-    
-    plt.plot(v_norm/a_norm, rad[n], marker="o")
+    # Plot the point
+    plt.plot(x_proj[n], rad[n], marker="o", color="red")
+    # Plot line to previous point
+    if (n > 0):
+        plt.arrow(x_proj[n-1], rad[n-1], x_proj[n]-x_proj[n-1], rad[n]-rad[n-1], color="red", width=0.01)
+    # Annotate the current node
+    plt.text(x_proj[n]+0.02, rad[n]+100, nod[n][-6:], fontsize="x-small")
 
-    plt.text(v_norm/a_norm, rad[n], nod[n])
-
-# ax.add_patch(circ)
-ax.set_xlim([-0.2, 1.2])
+# Set axis liimts
+ax.set_xlim([-0.1, 1.1])
 ax.set_ylim(min(rad)-5000, max(rad)+5000)
+ax.set_ylim(min(rad)-1000, max(rad)+1000)
 
-# exit(0)
+# Vector to earth center and its norm
+ec = np.array([-x[0], -y[0], -z[0]])
+ec_norm = np.sqrt(sum(ec**2))
 
-
-# print("axis is", axis)
-# for n in range(len(x)):
-#     v = np.array([x[n]-x[0], y[n]-y[0], z[n]-z[0]])
-
-#     rad = np.sqrt(x[n]**2 + y[n]**2 + z[n]**2)
-    
-#     # norm
-#     v_norm = np.sqrt(sum(v**2))
-
-#     # projection
-#     v_proj = (np.dot(axis, v)/v_norm**2)*v
-
-#     print("projection is ", v_proj)
-#     print("projection norm is ", v_norm/a_norm)
-
-#     plt.plot(v_norm/a_norm, rad, marker="o")
-
-#     if n > 1:
-#         plt.plot()
-
-# Projection of earth center
-v = np.array([-x[0], -y[0], -z[0]])
-v_norm = np.sqrt(sum(v**2))
-
-print("earth center norm is ", v_norm/a_norm)
+# Draw layer boundaries as circles around earth center
 for r in atmo:
-    circ = plt.Circle((v_norm/a_norm, 0), r*1000+6371000, fill=False, color='blue')
+    circ = plt.Circle((ec_norm/ax_norm, 0), r*1000 +
+                      6371000, fill=False, color='blue')
     ax.add_patch(circ)
 
+axis_labels = ax.get_yticks().tolist()
+axis_labels_upd = [x-6371000 for x in axis_labels]
 
-plt.show()
+ax.set_yticklabels(axis_labels_upd)
 
-exit(0)
-
-u = np.array([1, 2, 3])   # vector u
-v = np.array([5, 6, 2])   # vector v:
-
-# Task: Project vector u on vector v
-
-# finding norm of the vector v
-v_norm = np.sqrt(sum(v**2))    
-
-# Apply the formula as mentioned above
-# for projecting a vector onto another vector
-# find dot product using np.dot()
-proj_of_u_on_v = (np.dot(u, v)/v_norm**2)*v
-
-print("Projection of Vector u on Vector v is: ", proj_of_u_on_v)
-
-exit(0)
-
-radius = 5000
-
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
-
-# for p in points:
-ax.scatter(x, y, z, marker="o")
-
-theta = np.linspace(0, 2 * np.pi, 100)
-phi = np.linspace(0, np.pi, 50)
-theta, phi = np.meshgrid(theta, phi)
-r = 50000 + 6371000
-# Convert to Cartesian coordinates
-rx = r * np.sin(phi) * np.cos(theta)
-ry = r * np.sin(phi) * np.sin(theta)
-rz = r * np.cos(phi)
-
-
-
-# ax.plot_surface(rx, ry, rz, cmap='viridis', alpha=0.8)
-# ax.set_aspect('equal')
-
-plt.show()
-
-# fig.savefig("plots/tracking_dbg/1.png", dpi=300)
-
+# Save plot
+fig.savefig("plots/tracking_dbg/" + file + ".png", dpi=300)
