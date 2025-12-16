@@ -1,0 +1,179 @@
+Tracking pos: (-146767 -16484.4 6.40648e+06) m 
+        Tracking   p: (-0.00130297 0.00129222 -0.00309827) [] GeV 
+        Tracking   v: (-1.07401e+08 1.06515e+08 -2.55384e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 223.951 m, steplimit: 87.2107 m = 2.93818e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555588b1350, numericallyInside=true 
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587cb110:
+[corsika:debug   (Intersect.inl:67)] children t-entry: 9.53652e-07 s, t-exit: 2.91636e-06 s, smaller? false 
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.93818e-07 s, node 0x5555588b1350 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 87.21072608725152 m Medium transition after: 87.21072608725152 m Decay after: inf m Interaction after: 542.9074385112796 m Continuous limit: 370.579235915157 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.003040484765329644 GeV, E=0.0035514836653296436 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.7623093002744175 g/cm2, next_interact=6.477260952959442 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.0035514836653296436 GeV 
+        Tracking pos: (-146799 -16439.5 6.40641e+06) m 
+        Tracking   p: (-0.00135402 0.00182313 -0.0026823) [] GeV 
+        Tracking   v: (-1.14297e+08 1.53896e+08 -2.26422e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 216.365 m, steplimit: 84.2565 m = 2.84005e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555588b1350, numericallyInside=true 
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587cb110:
+[corsika:debug   (Intersect.inl:67)] children t-entry: 7.4556e-07 s, t-exit: 1.56551e-06 s, smaller? false 
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.84005e-07 s, node 0x5555588b1350 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 84.25654928541753 m Medium transition after: 84.25654928541753 m Decay after: inf m Interaction after: 7444.594030114439 m Continuous limit: 360.02095154941793 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.002957295855496046 GeV, E=0.003468294755496046 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.7852337981096134 g/cm2, next_interact=27.916563446387773 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.003468294755496046 GeV 
+        Tracking pos: (-146831 -16384.2 6.40635e+06) m 
+        Tracking   p: (-0.00123252 0.00243919 -0.00207345) [] GeV 
+        Tracking   v: (-1.06536e+08 2.10839e+08 -1.79225e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 213.573 m, steplimit: 83.1693 m = 2.80484e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555588b1350, numericallyInside=true 
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587cb110:
+[corsika:debug   (Intersect.inl:67)] children t-entry: 6.04403e-07 s, t-exit: 6.96556e-07 s, smaller? false 
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.80484e-07 s, node 0x5555588b1350 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 83.16933106345913 m Medium transition after: 83.16933106345913 m Decay after: inf m Interaction after: 19533.988836125365 m Continuous limit: 350.8258987965979 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.002874703086516931 GeV, E=0.0033857019865169307 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.80951878207775 g/cm2, next_interact=7.212393413105319 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.0033857019865169307 GeV 
+        Tracking pos: (-146861 -16316 6.40631e+06) m 
+        Tracking   p: (-0.000893183 0.00287867 -0.00145511) [] GeV 
+        Tracking   v: (-7.90883e+07 2.54896e+08 -1.28845e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 215.185 m, steplimit: 83.7968 m = 2.82755e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555588b1350, numericallyInside=true 
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587cb110:
+[corsika:debug   (Intersect.inl:67)] children t-entry: 1.93335e-07 s, t-exit: 5.624e-07 s, smaller? true 
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 1.93335e-07 s, node 0x5555587cb110 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 57.296553532751574 m Medium transition after: 57.296553532751574 m Decay after: inf m Interaction after: 9254.986477323113 m Continuous limit: 342.4964267448849 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.0028180157871638355 GeV, E=0.0033290146871638353 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:274)] volume boundary crossing to 0x5555587cb110
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.82716866115406 g/cm2, next_interact=1.5014267268947887 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.0033290146871638353 GeV 
+        Tracking pos: (-146877 -16263.5 6.4063e+06) m 
+        Tracking   p: (-0.00120641 0.00301615 -0.000518285) [] GeV 
+        Tracking   v: (-1.08642e+08 2.71618e+08 -4.66739e+07) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 204.165 m, steplimit: 79.5057 m = 2.68383e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555587cb110, numericallyInside=true 
+[corsika:debug   (Intersect.inl:46)] intersection times with currentLogicalVolumeNode: entry=-1.3531547052431347e-17 s and exit=0.00655136975544355 s
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587d1600:
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.68383e-07 s, node 0x5555587cb110 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 79.50567254824975 m Medium transition after: 79.50567254824975 m Decay after: inf m Interaction after: 2473.860550575303 m Continuous limit: 338.18432879295926 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.002738836712743124 GeV, E=0.003249835612743124 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555587cb110 but are in numericalNodeAfterStep=0x5555588b1350. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.853315788459219 g/cm2, next_interact=1.5175861942299906 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.003249835612743124 GeV 
+        Tracking pos: (-146906 -16188.3 6.4063e+06) m 
+        Tracking   p: (-0.0011231 0.00293335 0.000659087) [] GeV 
+        Tracking   v: (-1.03604e+08 2.70598e+08 6.07998e+07) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 200.571 m, steplimit: 78.1061 m = 2.63816e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555587cb110, numericallyInside=false 
+[corsika:debug   (TrackingLeapFrogCurved.inl:252)] no intersections found: count=0, first_entry=0, first_exit=0
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587d1600:
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.63816e-07 s, node 0x5555587cb110 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 78.10609972636803 m Medium transition after: 78.10609972636803 m Decay after: inf m Interaction after: 2694.989945498408 m Continuous limit: 333.7502901959857 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.0026612980150620756 GeV, E=0.0031722969150620754 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555587cb110 but are in numericalNodeAfterStep=0x5555588b1350. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.8808057092021557 g/cm2, next_interact=22.935595720323786 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.0031722969150620754 GeV 
+        Tracking pos: (-146933 -16119.9 6.40633e+06) m 
+        Tracking   p: (-0.00136888 0.00249757 0.00130024) [] GeV 
+        Tracking   v: (-1.29364e+08 2.36029e+08 1.22877e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 187.847 m, steplimit: 73.1512 m = 2.47235e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555587cb110, numericallyInside=false 
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587d1600:
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.47235e-07 s, node 0x5555587cb110 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 73.15118822915532 m Medium transition after: 73.15118822915532 m Decay after: inf m Interaction after: inf m Continuous limit: 329.43249711980746 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.002589314522684635 GeV, E=0.0031003134226846346 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555587cb110 but are in numericalNodeAfterStep=0x5555588b1350. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.9082076007083653 g/cm2, next_interact=0.49979955874289944 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.0031003134226846346 GeV 
+        Tracking pos: (-146965 -16066.8 6.40637e+06) m 
+        Tracking   p: (-0.00146343 0.00186235 0.00193413) [] GeV 
+        Tracking   v: (-1.4151e+08 1.80084e+08 1.87025e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 179.123 m, steplimit: 69.754 m = 2.359e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555587cb110, numericallyInside=false 
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587d1600:
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.359e-07 s, node 0x5555587cb110 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 69.75395809442472 m Medium transition after: 69.75395809442472 m Decay after: inf m Interaction after: 898.1276486711319 m Continuous limit: 326.1498470003117 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.0025213206341898973 GeV, E=0.003032319534189897 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555587cb110 but are in numericalNodeAfterStep=0x5555588b1350. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.935959436867859 g/cm2, next_interact=6.441643829887815 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.003032319534189897 GeV 
+        Tracking pos: (-146998 -16031.9 6.40642e+06) m 
+        Tracking   p: (-0.00115839 0.00115734 0.00250051) [] GeV 
+        Tracking   v: (-1.14525e+08 1.14421e+08 2.47214e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 183.817 m, steplimit: 71.5819 m = 2.42236e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555587cb110, numericallyInside=false 
+[corsika:debug   (TrackingLeapFrogCurved.inl:252)] no intersections found: count=0, first_entry=0, first_exit=0
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587d1600:
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.42236e-07 s, node 0x5555587cb110 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 71.58185645850476 m Medium transition after: 71.58185645850476 m Decay after: inf m Interaction after: inf m Continuous limit: 323.5229134637551 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.002452091984419066 GeV, E=0.002963090884419066 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555587cb110 but are in numericalNodeAfterStep=0x5555588b1350. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.9663060541032764 g/cm2, next_interact=1.8306961985790335 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.002963090884419066 GeV 
+        Tracking pos: (-147026 -16014.9 6.40648e+06) m 
+        Tracking   p: (-0.000980966 0.000187414 0.00274251) [] GeV 
+        Tracking   v: (-9.92498e+07 1.89618e+07 2.77475e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 183.387 m, steplimit: 71.4144 m = 2.41836e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555587cb110, numericallyInside=false 
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587d1600:
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.41836e-07 s, node 0x5555587cb110 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 71.41439347440779 m Medium transition after: 71.41439347440779 m Decay after: inf m Interaction after: 4369.8791796353125 m Continuous limit: 320.44511929424743 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.0023837339765322768 GeV, E=0.0028947328765322766 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555587cb110 but are in numericalNodeAfterStep=0x5555588b1350. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=3.9985928153421213 g/cm2, next_interact=0.628586832386031 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.0028947328765322766 GeV 
+        Tracking pos: (-147050 -16022.6 6.40655e+06) m 
+        Tracking   p: (-0.00161266 -0.000509839 0.00229298) [] GeV 
+        Tracking   v: (-1.67015e+08 -5.28013e+07 2.37472e+08) m/s
+[corsika:debug   (TrackingLeapFrogCurved.inl:94)] gyroradius 156.707 m, steplimit: 61.0245 m = 2.06803e-07 s
+[corsika:debug   (Intersect.inl:28)] volumeNode=0x5555587cb110, numericallyInside=false 
+[corsika:debug   (Intersect.inl:62)] search intersection times with child volume 0x5555587d1600:
+[corsika:debug   (Intersect.inl:105)] next time-intersect: 2.06803e-07 s, node 0x5555587cb110 
+[corsika:debug   (Cascade.inl:228)] transport particle by : 61.024493733256385 m Medium transition after: 61.024493733256385 m Decay after: inf m Interaction after: 1200.7255298378718 m Continuous limit: 315.56776038447794 m 
+[corsika:debug   (ParticleCut.inl:95)] ParticleCut: checking Electron (11), E_kin= 0.0023262509230203426 GeV, E=0.002837249823020343 GeV, m=0.0005109989 GeV
+[corsika:debug   (Cascade.inl:265)] discrete process before geometric limit ? no
+[corsika:debug   (Cascade.inl:296)] step limit reached (e.g. deflection). nothing further happens.
+[corsika:debug   (Cascade.inl:306)] expect to be in node currentLogicalNode=0x5555587cb110 but are in numericalNodeAfterStep=0x5555588b1350. Continue, but without guarantee.
+[corsika:debug   (Cascade.inl:182)] total_lambda=4.027738947902835 g/cm2, next_interact=2.028664947606313 g/cm2
+[corsika:debug   (Decay.inl:122)] Pythia::Decay: checking if particle: Electron can decay in PYTHIA? false 
+[corsika:debug   (Cascade.inl:193)] total_lifetime=inf ns, next_decay=inf ns
+[corsika:debug   (TrackingLeapFrogCurved.inl:35)] TrackingLeapfrog_Curved pid: Electron , E = 0.002837249823020343 GeV 

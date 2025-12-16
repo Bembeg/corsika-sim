@@ -49,10 +49,12 @@ SUF=$1
 # THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
 THREADS=4
 
+BUILD="rel"
+
 # Main directory with the Corsika project
 MAIN_DIR="${PWD}/.."
 # C8 executable
-C8_EXEC="${MAIN_DIR}/corsika/install/bin/c8_air_shower"
+C8_EXEC="${MAIN_DIR}/corsika/install/rel/bin/c8_air_shower"
 # Output directory
 OUTPUT_DIR="${PWD}/output"
 
@@ -63,16 +65,16 @@ mkdir -p ${OUTPUT_DIR}
 source ${MAIN_DIR}/setup.sh
 
 # Particles to simulate - 22=gamma, 2212=proton
-PARTICLES=(2212 22)
+PARTICLES=(22)
 
 # Primary energies to simulate (in GeV), corresponding to CTA energy range 20 GeV - 300 TeV
-ENERGIES=(10 100 500)
+ENERGIES=(1)
 
 # Number of showers in each simulation
-SHOWERS=1
+SHOWERS=50
 
 # Number of runs for each configuration
-RUNS=10
+RUNS=1000
 
 echo "Running shower simulations:"
 
@@ -114,6 +116,7 @@ for PART in ${PARTICLES[@]}; do
                     --pdg $PART \
                     -E $ENE \
                     -f ${RUN_OUTPUT} \
+                    --disable-interaction-histograms \
                     &> ${SIM_OUTPUT}_${N}.log &
             fi
 
