@@ -32,7 +32,7 @@ fi
 
 # Clone corsika-sim
 if [ ! -d $WDIR/corsika-sim ]; then
-	git clone https://github.com/Bembeg/corsika-sim.git
+	git clone git@github.com:Bembeg/corsika-sim.git
 else 
 	echo "Corsika-sim already cloned"
 fi
