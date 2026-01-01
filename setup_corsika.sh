@@ -32,7 +32,7 @@ fi
 
 # Clone corsika-sim
 if [ ! -d $WDIR/corsika-sim ]; then
-	git clone git@github.com:Bembeg/corsika-sim.git
+	git clone https://github.com/Bembeg/corsika-sim.git
 else 
 	echo "Corsika-sim already cloned"
 fi
@@ -40,7 +40,9 @@ fi
 # Clone corsika
 if [ ! -d corsika ]; then
 	BRANCH="radek_atmo_models"
-	git clone --recursive https://gitlab.iap.kit.edu/AirShowerPhysics/corsika.git -b $BRANCH
+	# git clone --recursive https://gitlab.iap.kit.edu/AirShowerPhysics/corsika.git -b $BRANCH
+	git clone --recursive git@gitlab.iap.kit.edu:AirShowerPhysics/corsika.git -b $BRANCH
+
 else
 	echo "Corsika already cloned"
 fi
@@ -49,17 +51,6 @@ fi
 RUN_TESTS=1
 cd $WDIR/corsika
 mkdir -p build/debug build/release
-
-# Debug build
-cd $WDIR/corsika/build/debug
-$WDIR/corsika/conan-install.sh --source-directory $WDIR/corsika --debug
-$WDIR/corsika/corsika-cmake.sh -c "-DCMAKE_BUILD_TYPE="Debug" -DWITH_FLUKA=ON -DCMAKE_INSTALL_PREFIX=$WDIR/corsika/install/debug"
-make install -j$THR
-if [ $RUN_TESTS -eq 1 ]; then
-	ctest -j$THR -E "testQGSJetIII|testProposal"
-	TEST_DBG=$?
-fi
-cd $WDIR/corsika
 
 # Release build
 cd $WDIR/corsika/build/release
@@ -72,10 +63,21 @@ if [ $RUN_TESTS -eq 1 ]; then
 fi
 cd $WDIR/corsika
 
+# Debug build
+cd $WDIR/corsika/build/debug
+$WDIR/corsika/conan-install.sh --source-directory $WDIR/corsika --debug
+$WDIR/corsika/corsika-cmake.sh -c "-DCMAKE_BUILD_TYPE="Debug" -DWITH_FLUKA=ON -DCMAKE_INSTALL_PREFIX=$WDIR/corsika/install/debug"
+make install -j$THR
+if [ $RUN_TESTS -eq 1 ]; then
+	ctest -j$THR -E "testQGSJetIII|testProposal"
+	TEST_DBG=$?
+fi
+cd $WDIR/corsika
+
 # Test results
 if [ $RUN_TESTS -eq 1 ]; then
-	echo "Test debug build: exit code $TEST_DBG"
 	echo "Test release build: exti code $TEST_REL"
+	echo "Test debug build: exit code $TEST_DBG"
 fi
 
 echo "Finished"
