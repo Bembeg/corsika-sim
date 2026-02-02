@@ -15,7 +15,7 @@ keep_checking() {
     # Check if any child processes are still running
     while [ $(get_threads) -gt 0 ]; do
         echo -n "  Running PID: "
-        
+
         # Output PIDs of still running processes
         for PID in ${RUNS[@]}; do
             if [[ $(ps --no-headers -p $PID | wc -l) -ne 0 ]]; then
@@ -47,14 +47,14 @@ SUF=$1
 
 # Number of available threads
 # THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
-THREADS=4
+THREADS=8
 
-BUILD="rel"
+BUILD="release"
 
 # Main directory with the Corsika project
 MAIN_DIR="${PWD}/.."
 # C8 executable
-C8_EXEC="${MAIN_DIR}/corsika/install/rel/bin/c8_air_shower"
+C8_EXEC="${MAIN_DIR}/corsika/install/${BUILD}/bin/c8_air_shower"
 # Output directory
 OUTPUT_DIR="${PWD}/output"
 
@@ -62,19 +62,19 @@ OUTPUT_DIR="${PWD}/output"
 mkdir -p ${OUTPUT_DIR}
 
 # Enter C8 environment
-source ${MAIN_DIR}/setup.sh
+source ${MAIN_DIR}/source.sh
 
 # Particles to simulate - 22=gamma, 2212=proton
 PARTICLES=(22)
 
 # Primary energies to simulate (in GeV), corresponding to CTA energy range 20 GeV - 300 TeV
-ENERGIES=(1)
+ENERGIES=(1000)
 
 # Number of showers in each simulation
-SHOWERS=50
+SHOWERS=10
 
 # Number of runs for each configuration
-RUNS=1000
+RUNS=200
 
 echo "Running shower simulations:"
 
@@ -84,7 +84,7 @@ for PART in ${PARTICLES[@]}; do
         # Determine output directory name for this simulation
         if [ "$1" = "--profile" ]; then
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}_prof"
-        else 
+        else
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}"
         fi
 
@@ -96,8 +96,8 @@ for PART in ${PARTICLES[@]}; do
             # Check if output directory exists for this simulation
             if [ -d ${RUN_OUTPUT} ]; then
                 # echo "  Simulation output already exists for Primary particle PDG: $PART, energy: $ENE GeV"
-                rm -rf ${RUN_OUTPUT}    
-                # continue
+                # rm -rf ${RUN_OUTPUT}
+                continue
             fi
 
             if [ "$1" = "--profile" ]; then
@@ -109,7 +109,7 @@ for PART in ${PARTICLES[@]}; do
                         -E $ENE \
                         -f ${RUN_OUTPUT} \
                         &> ${SIM_OUTPUT}_${N}.log &
-            else      
+            else
                 # Run Corsika
                 ${C8_EXEC} \
                     --nevent $SHOWERS \
@@ -117,13 +117,15 @@ for PART in ${PARTICLES[@]}; do
                     -E $ENE \
                     -f ${RUN_OUTPUT} \
                     --disable-interaction-histograms \
+                    -s $((N+1)) \
                     &> ${SIM_OUTPUT}_${N}.log &
+
             fi
 
             # Get PID of the new process
             PID=$!
             RUNS+=($PID)
-            
+
             # Profiling using Perf
             # sudo perf record -p $PID -F 999 -g -o ${RUN_OUTPUT}.data &
 
@@ -158,7 +160,7 @@ for PART in ${PARTICLES[@]}; do
         # Determine output directory name for this simulation
         if [ "$1" = "--profile" ]; then
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}_prof"
-        else 
+        else
             SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}"
         fi
 
