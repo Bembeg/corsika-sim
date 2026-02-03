@@ -1,5 +1,6 @@
 WDIR=$(pwd)
 THR=$(lscpu | grep "^CPU(s):" | grep -oE [0-9]*)
+THR=6
 
 # Virtual env
 if [ ! -d $WDIR/corsika-env ]; then
@@ -33,7 +34,7 @@ fi
 # Clone corsika-sim
 if [ ! -d $WDIR/corsika-sim ]; then
 	git clone https://github.com/Bembeg/corsika-sim.git
-else 
+else
 	echo "Corsika-sim already cloned"
 fi
 
@@ -47,8 +48,14 @@ else
 	echo "Corsika already cloned"
 fi
 
+# Determine whether tests are to be run
+if [ "$1" == "1" ] || [ -z "$1" ]; then
+	RUN_TESTS=1
+else
+	RUN_TESTS=0
+fi
+
 # Build corsika
-RUN_TESTS=1
 cd $WDIR/corsika
 mkdir -p build/debug build/release
 
@@ -76,7 +83,7 @@ cd $WDIR/corsika
 
 # Test results
 if [ $RUN_TESTS -eq 1 ]; then
-	echo "Test release build: exti code $TEST_REL"
+	echo "Test release build: exit code $TEST_REL"
 	echo "Test debug build: exit code $TEST_DBG"
 fi
 
