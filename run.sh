@@ -47,7 +47,7 @@ SUF=$1
 
 # Number of available threads
 # THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
-THREADS=8
+THREADS=2
 
 BUILD="release"
 
@@ -74,7 +74,7 @@ ENERGIES=(1000)
 SHOWERS=10
 
 # Number of runs for each configuration
-RUNS=200
+RUNS=50
 
 echo "Running shower simulations:"
 
@@ -118,6 +118,7 @@ for PART in ${PARTICLES[@]}; do
                     -f ${RUN_OUTPUT} \
                     --disable-interaction-histograms \
                     -s $((N+1)) \
+                    --injection-height 112750 \
                     &> ${SIM_OUTPUT}_${N}.log &
 
             fi

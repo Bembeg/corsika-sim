@@ -37,7 +37,7 @@ def energyloss():
         # Get index of this run
         id = sim_dir.index(path)
         # If this run is ref, add that to its name
-        if (id == 0 and len(sim_dir)>1): name += " (ref)"
+        # if (id == 0 and len(sim_dir)>1): name += " (ref)"
         # Get color
         color = colors[id]
 
@@ -49,15 +49,19 @@ def energyloss():
         # Calculate ratio vs reference
         res[path]["ratio"] = res[path]["total_mean"] / res[ref]["total_mean"]
 
+        res[path]["ratio_err"] = res[path]["ratio"] * np.sqrt( np.square(res[path]["total_sem"] / res[path]["total_mean"]) + np.square(res[ref]["total_sem"] / res[ref]["total_mean"]) )
+
         # Plot main subplot
         res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Avg. energy loss per shower",
                                                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
                                                 ax=ax1, legend=True, label=name, color=color)
     
         # Plot ratio subplot
-        res[path][res[path]["X"] < X_limit].plot(x="X", y="ratio", 
+        res[path][res[path]["X"] < X_limit].plot(x="X", y="ratio", yerr="ratio_err",
                                                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio vs ref.", marker=".",
                                                 ax=ax2, legend=False, label=name, color=color)
+
+        plt.fill_between(x="X", y1="ratio - ratio_err", y2="ratio + ratio_err", alpha=0.5, label="label")
 
     # Add grid
     ax1.grid(ls="dashed", c="0.85")
@@ -114,7 +118,7 @@ def production():
             # Get index of this run
             id = sim_dir.index(path)
             # If this run is ref, add that to its name
-            if (id == 0 and len(sim_dir)>1): name += " (ref)"
+            # if (id == 0 and len(sim_dir)>1): name += " (ref)"
             # Get color
             color = colors[id]
 
@@ -183,7 +187,7 @@ def profile():
             # Get index of this run
             id = sim_dir.index(path)
             # If this run is ref, add that to its name
-            if (id == 0 and len(sim_dir)>1): name += " (ref)"
+            # if (id == 0 and len(sim_dir)>1): name += " (ref)"
             # Get color
             color = colors[id]
 
@@ -255,8 +259,8 @@ def observation():
     
         # Set legend
         legend = [name.split("/")[1] for name in sim_dir]
-        if (len(legend) > 1):
-            legend[0] += " (ref)"
+        # if (len(legend) > 1):
+            # legend[0] += " (ref)"
         plt.legend(legend)
 
         # Plot and save
@@ -292,8 +296,8 @@ def observation():
 
         # Set legend
         legend = [name.split("/")[1] for name in sim_dir]
-        if (len(legend) > 1):
-            legend[0] += " (ref)"
+        # if (len(legend) > 1):
+        #     legend[0] += " (ref)"
         plt.legend(legend)
 
         # Plot and save
@@ -336,8 +340,8 @@ def runtimes():
 
     # Set legend
     legend = [name.split("/")[1] for name in sim_dir]
-    if (len(legend) > 1):
-        legend[0] += " (ref)"
+    # if (len(legend) > 1):
+    #     legend[0] += " (ref)"
     plt.legend(legend)
 
     # More y-axis range to make room for the legend   
