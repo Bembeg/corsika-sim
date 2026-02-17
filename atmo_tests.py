@@ -22,10 +22,10 @@ with open(path_dens, "w") as csv_dens:
     csv_dens.write("alt,diff\n")
     
     with open(path_gram, "w") as csv_gram:
-        csv_gram.write("pass,downward,alt0,alt1,len,ang,diff\n")
+        csv_gram.write("downward,alt0,alt1,len,ang,diff\n")
 
         with open(path_arclen, "w") as csv_arclen:
-            csv_arclen.write("pass,downward,alt0,alt1,len,ang,diff\n")
+            csv_arclen.write("downward,alt0,alt1,len,ang,diff\n")
 
             for line in in_content:
                 line_split = line.strip().split()
@@ -41,8 +41,6 @@ with open(path_dens, "w") as csv_dens:
 
                 # parse integrated grammage results
                 if "Gram:" in line:
-                    # get pass status
-                    passed = "1" if line_split[2] == "[pass]" else "0"
                     # track direction                    
                     downward = "1" if line_split[4] == "do" else "0"
                     # track endpoint altitudes
@@ -53,14 +51,12 @@ with open(path_dens, "w") as csv_dens:
                     # track inclination
                     ang = line_split[16].strip("):")
                     # test diff
-                    diff = line_split[-1]
+                    diff = str(abs(float(line_split[-1])))
                     # write to file
-                    csv_gram.write(",".join([passed,downward,alt0,alt1,track_len,ang,diff]) + "\n")
+                    csv_gram.write(",".join([downward,alt0,alt1,track_len,ang,diff]) + "\n")
 
                 # parse arclength results
                 if "Arclen:" in line:
-                    # get pass status
-                    passed = "1" if line_split[2] == "[pass]" else "0"
                     # track direction                    
                     downward = "1" if line_split[4] == "do" else "0"
                     # track endpoint altitudes
@@ -73,30 +69,78 @@ with open(path_dens, "w") as csv_dens:
                     # test diff
                     diff = line_split[-1]
                     # write to file
-                    csv_arclen.write(",".join([passed,downward,alt0,alt1,track_len,ang,diff]) + "\n")
+                    csv_arclen.write(",".join([downward,alt0,alt1,track_len,ang,diff]) + "\n")
 
 # Load created csv files as dataframes
 df_dens = pd.read_csv(path_dens)
 df_gram = pd.read_csv(path_gram)
 df_arclen = pd.read_csv(path_arclen)
 
-print(df_dens)
-print(df_gram)
-print(df_arclen)
-
+# print(df_dens)
+# print(df_gram)
+# print(df_arclen)
 
 os.makedirs("plots/atmo_tests", exist_ok=True)
 
 # -----------------
 # ---- DENSITY ----
 # -----------------
-
+print("Processing density test results")
 fig, ax = plt.subplots()
-df_dens.plot(x="alt", y="diff", title="density", xlabel="altitude [m]", ylabel="tab/ref - 1", legend=None, ax=ax)
+df_dens[df_dens["alt"] < 99000].plot(x="alt", y="diff", title="density", xlabel="altitude [m]", ylabel="tab/ref - 1", legend=None, ax=ax)
 ax.grid(ls="dashed", c="0.85")
 fig.savefig("plots/atmo_tests/density.png", dpi=300)
+
+print("sum",df_dens.sum())
 
 
 # ------------------
 # ---- GRAMMAGE ----
 # ------------------
+print("Processing integrated grammage test results")
+for ang in [0, 45, 85]:
+    fig, ax = plt.subplots()
+    # logscale
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    # grid under points
+    ax.set_axisbelow(True)
+
+    # plot downward tracks
+    df_gram[(df_gram["ang"] == ang) & (df_gram["downward"] == 1)].plot.scatter(x="len",y="diff",
+        title="integrated grammage, track angle " + str(ang) + "deg", xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c="red", alpha=0.3, label="downward tracks")
+    # plot upward tracks
+    df_gram[(df_gram["ang"] == ang) & (df_gram["downward"] == 0)].plot.scatter(x="len",y="diff",
+        title="integrated grammage, track angle " + str(ang) + "deg", xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c="blue", alpha=0.3, label="upward tracks")
+    # grid
+    ax.grid(ls="dashed", c="0.85")    
+    # save fig
+    fig.savefig("plots/atmo_tests/gram_ang" + str(ang) + ".png", dpi=300)
+    # clear fig
+    plt.clf()
+
+
+# -------------------
+# ---- ARCLENGTH ----
+# -------------------
+print("Processing arclength test results")
+for ang in [0, 45, 85]:
+    fig, ax = plt.subplots()
+    # logscale
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    # grid under points
+    ax.set_axisbelow(True)
+
+    # plot downward tracks
+    df_arclen[(df_arclen["ang"] == ang) & (df_arclen["downward"] == 1)].plot.scatter(x="len",y="diff",
+        title="track length from grammage, track angle " + str(ang) + "deg", xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c="red", alpha=0.3, label="downward tracks")
+    # plot upward tracks
+    df_arclen[(df_arclen["ang"] == ang) & (df_arclen["downward"] == 0)].plot.scatter(x="len",y="diff",
+        title="track length from grammage, track angle " + str(ang) + "deg", xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c="blue", alpha=0.3, label="upward tracks")
+    # grid
+    ax.grid(ls="dashed", c="0.85")    
+    # save fig
+    fig.savefig("plots/atmo_tests/arclen_ang" + str(ang) + ".png", dpi=300)
+    # clear fig
+    plt.clf()

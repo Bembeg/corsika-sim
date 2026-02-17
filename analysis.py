@@ -61,7 +61,7 @@ def energyloss():
                                                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio vs ref.", marker=".",
                                                 ax=ax2, legend=False, label=name, color=color)
 
-        plt.fill_between(x="X", y1="ratio - ratio_err", y2="ratio + ratio_err", alpha=0.5, label="label")
+        # plt.fill_between(x="X", y1="ratio - ratio_err", y2="ratio + ratio_err", alpha=0.5, label="label")
 
     # Add grid
     ax1.grid(ls="dashed", c="0.85")
