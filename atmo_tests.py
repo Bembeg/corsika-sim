@@ -87,7 +87,7 @@ os.makedirs("plots/atmo_tests", exist_ok=True)
 # -----------------
 print("Processing density test results")
 fig, ax = plt.subplots()
-df_dens[df_dens["alt"] < 99000].plot(x="alt", y="diff", title="density", xlabel="altitude [m]", ylabel="tab/ref - 1", legend=None, ax=ax)
+df_dens[df_dens["alt"] < 99000].plot(x="alt", y="diff", title="density", xlabel="altitude [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", legend=None, ax=ax)
 ax.grid(ls="dashed", c="0.85")
 fig.savefig("plots/atmo_tests/density.png", dpi=300)
 
@@ -107,10 +107,10 @@ for ang in [0, 10, 45, 85]:
 
     # plot downward tracks
     df_gram[(df_gram["ang"] == ang) & (df_gram["downward"] == 1)].plot.scatter(x="len",y="diff",
-        title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c="red", alpha=0.3, label="downward tracks")
+        title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="red", alpha=0.3, label="downward tracks")
     # plot upward tracks
     df_gram[(df_gram["ang"] == ang) & (df_gram["downward"] == 0)].plot.scatter(x="len",y="diff",
-        title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c="blue", alpha=0.3, label="upward tracks")
+        title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="upward tracks")
     # grid
     ax.grid(ls="dashed", c="0.85")    
     # save fig
@@ -129,8 +129,8 @@ i=0
 colors = ["red", "orange", "green", "blue", ]
 for ang in [0, 10, 45, 85]:
     # plot tracks
-    df_gram[(df_gram["ang"] == ang)].plot.scatter(x="len",y="diff", title="integrated grammage",
-     xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
+    df_gram[(df_gram["ang"] == ang) & (df_gram["alt0"] < 100000)].plot.scatter(x="len",y="diff", title="integrated grammage",
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
     i += 1
 
 # grid
@@ -155,10 +155,10 @@ for ang in [0, 45, 85]:
 
     # plot downward tracks
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["downward"] == 1)].plot.scatter(x="len",y="diff",
-        title="track length from grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c="red", alpha=0.3, label="downward tracks")
+        title="track length from grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="red", alpha=0.3, label="downward tracks")
     # plot upward tracks
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["downward"] == 0)].plot.scatter(x="len",y="diff",
-        title="track length from grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c="blue", alpha=0.3, label="upward tracks")
+        title="track length from grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="upward tracks")
     # grid
     ax.grid(ls="dashed", c="0.85")    
     # save fig
@@ -177,8 +177,8 @@ i=0
 colors = ["red", "green", "blue"]
 for ang in [0, 45, 85]:
     # plot tracks
-    df_arclen[(df_arclen["ang"] == ang)].plot.scatter(x="len",y="diff",title="track length from grammage",
-     xlabel="track length [m]", ylabel="| tab/ref - 1 |", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
+    df_arclen[(df_arclen["ang"] == ang) & (df_arclen["alt0"] < 100000)].plot.scatter(x="len",y="diff",title="track length from grammage",
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
     i += 1
 
 # grid
