@@ -80,6 +80,8 @@ df_arclen = pd.read_csv(path_arclen)
 # print(df_gram)
 # print(df_arclen)
 
+dpi_val = 150
+
 os.makedirs("plots/atmo_tests", exist_ok=True)
 
 # -----------------
@@ -87,9 +89,9 @@ os.makedirs("plots/atmo_tests", exist_ok=True)
 # -----------------
 print("Processing density test results")
 fig, ax = plt.subplots()
-df_dens[df_dens["alt"] < 99000].plot(x="alt", y="diff", title="density", xlabel="altitude [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", legend=None, ax=ax)
+df_dens[df_dens["alt"] < 99000].plot(x="alt", y="diff", title="density", xlabel="altitude [m]", ylabel=r"$\frac{interp. atmo}{expon. atmo} - 1$", legend=None, ax=ax)
 ax.grid(ls="dashed", c="0.85")
-fig.savefig("plots/atmo_tests/density.png", dpi=300)
+fig.savefig("plots/atmo_tests/density.png", dpi=dpi_val)
 
 print("  accumulated diffs:", df_dens.sum()["diff"])
 
@@ -114,7 +116,7 @@ for ang in [0, 10, 45, 85]:
     # grid
     ax.grid(ls="dashed", c="0.85")    
     # save fig
-    fig.savefig("plots/atmo_tests/gram_ang" + str(ang) + ".png", dpi=300)
+    fig.savefig("plots/atmo_tests/gram_ang" + str(ang) + ".png", dpi=dpi_val)
     # clear fig
     plt.clf()
 
@@ -136,7 +138,7 @@ for ang in [0, 10, 45, 85]:
 # grid
 ax.grid(ls="dashed", c="0.85")    
 # save fig
-fig.savefig("plots/atmo_tests/gram.png", dpi=300)
+fig.savefig("plots/atmo_tests/gram.png", dpi=dpi_val)
 # clear fig
 plt.clf()
 
@@ -162,7 +164,7 @@ for ang in [0, 45, 85]:
     # grid
     ax.grid(ls="dashed", c="0.85")    
     # save fig
-    fig.savefig("plots/atmo_tests/arclen_ang" + str(ang) + ".png", dpi=300)
+    fig.savefig("plots/atmo_tests/arclen_ang" + str(ang) + ".png", dpi=dpi_val)
     # clear fig
     plt.clf()
 
@@ -184,6 +186,6 @@ for ang in [0, 45, 85]:
 # grid
 ax.grid(ls="dashed", c="0.85")    
 # save fig
-fig.savefig("plots/atmo_tests/arclen.png", dpi=300)
+fig.savefig("plots/atmo_tests/arclen.png", dpi=dpi_val)
 # clear fig
 plt.clf()

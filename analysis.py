@@ -38,7 +38,7 @@ def energyloss():
         # Get index of this run
         id = sim_dir.index(path)
         # If this run is ref, add that to its name
-        # if (id == 0 and len(sim_dir)>1): name += " (ref)"
+        if (id == 0 and len(sim_dir)>1): name += " (ref)"
         # Get color
         color = colors[id]
 
@@ -70,7 +70,7 @@ def energyloss():
     
     # Plot and save
     plot_path = plot_dir + "eloss.png"
-    fig.savefig(plot_path, dpi=300)
+    fig.savefig(plot_path, dpi=dpi_val)
     print("  - generated plot '", plot_path + "'", sep="")
 
 def interactions():
@@ -120,7 +120,7 @@ def production():
             # Get index of this run
             id = sim_dir.index(path)
             # If this run is ref, add that to its name
-            # if (id == 0 and len(sim_dir)>1): name += " (ref)"
+            if (id == 0 and len(sim_dir)>1): name += " (ref)"
             # Get color
             color = colors[id]
 
@@ -140,7 +140,7 @@ def production():
 
         # Plot and save
         plot_path = plot_dir + "prod_" + tag[n] + ".png"
-        fig.savefig(plot_path, dpi=300)
+        fig.savefig(plot_path, dpi=dpi_val)
         print("  - generated plot '", plot_path + "'", sep="")
 
 def profile():
@@ -192,7 +192,7 @@ def profile():
             # Get index of this run
             id = sim_dir.index(path)
             # If this run is ref, add that to its name
-            # if (id == 0 and len(sim_dir)>1): name += " (ref)"
+            if (id == 0 and len(sim_dir)>1): name += " (ref)"
             # Get color
             color = colors[id]
 
@@ -214,17 +214,17 @@ def profile():
 
         # Plot and save
         plot_path = plot_dir + "profile_" + tag[n] + ".png"
-        fig.savefig(plot_path, dpi=300)
+        fig.savefig(plot_path, dpi=dpi_val)
         print("  - generated plot '", plot_path + "'", sep="")
 
 def observation():
     print("5) Running observation plane analysis")
 
     # Define which columns to plot and corresponding labels, titles and tags
-    pdg=[11, 13, 22, 100]
-    cols = ["ep", "muon", "photon", "hadron"]
-    title = [r"$e^{\pm}$", r"$\mu^{\pm}$", "photons", "hadrons"]
-    tag = ["ep", "muon", "photon", "hadron"]
+    pdg=[11, 13, 22]
+    cols = ["ep", "muon", "photon"]
+    title = [r"$e^{\pm}$", r"$\mu^{\pm}$", "photons"]
+    tag = ["ep", "muon", "photon"]
 
     # Dictionary for dataframes
     res = {}
@@ -269,12 +269,12 @@ def observation():
         # Set legend
         legend = [name.split("/")[1] for name in sim_dir]
         # if (len(legend) > 1):
-            # legend[0] += " (ref)"
+        #     legend[0] += " (ref)"
         plt.legend(legend)
 
         # Plot and save
         plot_path = plot_dir + "ground_Ekin_" + tag[n] + ".png"
-        fig.savefig(plot_path, dpi=300)
+        fig.savefig(plot_path, dpi=dpi_val)
         print("  - generated plot '", plot_path + "'", sep="")
 
     # Plotting of radius
@@ -311,7 +311,7 @@ def observation():
 
         # Plot and save
         plot_path = plot_dir + "ground_R_" + tag[n] + ".png"
-        fig.savefig(plot_path, dpi=300)
+        fig.savefig(plot_path, dpi=dpi_val)
         print("  - generated plot '", plot_path + "'", sep="")
 
 def runtimes():
@@ -353,8 +353,8 @@ def runtimes():
 
     # Set legend
     legend = [name.split("/")[1] for name in sim_dir]
-    # if (len(legend) > 1):
-    #     legend[0] += " (ref)"
+    if (len(legend) > 1):
+        legend[0] += " (ref)"
     plt.legend(legend)
 
     # More y-axis range to make room for the legend   
@@ -390,7 +390,7 @@ def runtimes():
 
     # Plot and save
     plot_path = plot_dir + "runtimes.png"
-    fig.savefig(plot_path, dpi=300)
+    fig.savefig(plot_path, dpi=dpi_val)
     print("  - generated plot '", plot_path + "'", sep="")
 
     # Create figure
@@ -418,7 +418,7 @@ def runtimes():
 
     # Plot and save
     plot_path = plot_dir + "runtimes_seed.png"
-    fig.savefig(plot_path, dpi=300)
+    fig.savefig(plot_path, dpi=dpi_val)
     print("  - generated plot '", plot_path + "'", sep="")
 
 # Check if any arguments were passed
@@ -430,8 +430,11 @@ if len(sys.argv) == 1:
 # Limit max X in plots
 X_limit = 1030
 
+# DPI value
+dpi_val=200
+
 # Plot directory
-plot_dir = "plots/out/"
+plot_dir = "plots/out/" + sys.argv[1] + "/"
 os.makedirs(plot_dir, exist_ok=True)
 
 # Map modules and output files inside
@@ -449,11 +452,11 @@ colors=("firebrick", "mediumblue", "green", "goldenrod")
 # Declare dictionaries to hold dataframes
 data = {}
 
-print("Passed ", len(sys.argv)-1, " argument(s), verifying run validity:", sep="")
+print("Passed ", len(sys.argv)-2, " argument(s), verifying run validity:", sep="")
 
 # Check whether run directories are valid
 sim_dir = []
-for sim_name in sys.argv[1:]:
+for sim_name in sys.argv[2:]:
     print("  -", sim_name, end=": ")
 
     # Check if merged directory exists

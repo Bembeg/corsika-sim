@@ -1,0 +1,11 @@
+source ../source.sh
+
+python3 analysis.py pdg2212_E1000 pdg2212_E1000_expon pdg2212_E1000_interp
+python3 analysis.py pdg2212_E1000_alt40 pdg2212_E1000_expon_alt40 pdg2212_E1000_interp_alt40
+python3 analysis.py pdg2212_E1000_z40 pdg2212_E1000_expon_z40 pdg2212_E1000_interp_z40
+python3 analysis.py pdg2212_E1000_alt40_z40 pdg2212_E1000_expon_alt40_z40 pdg2212_E1000_interp_alt40_z40
+
+python3 analysis.py pdg22_E1000 pdg22_E1000_expon pdg22_E1000_interp
+python3 analysis.py pdg22_E1000_alt40 pdg22_E1000_expon_alt40 pdg22_E1000_interp_alt40
+python3 analysis.py pdg22_E1000_z40 pdg22_E1000_expon_z40 pdg22_E1000_interp_z40
+python3 analysis.py pdg22_E1000_alt40_z40 pdg22_E1000_expon_alt40_z40 pdg22_E1000_interp_alt40_z40
