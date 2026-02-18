@@ -20,7 +20,7 @@ path_arclen = "data/csv_arclen.txt"
 
 with open(path_dens, "w") as csv_dens:
     csv_dens.write("alt,diff\n")
-    
+
     with open(path_gram, "w") as csv_gram:
         csv_gram.write("downward,alt0,alt1,len,ang,diff\n")
 
@@ -41,7 +41,7 @@ with open(path_dens, "w") as csv_dens:
 
                 # parse integrated grammage results
                 if "Gram:" in line:
-                    # track direction                    
+                    # track direction
                     downward = "1" if line_split[4] == "do" else "0"
                     # track endpoint altitudes
                     alt0 = line_split[7]
@@ -57,7 +57,7 @@ with open(path_dens, "w") as csv_dens:
 
                 # parse arclength results
                 if "Arclen:" in line:
-                    # track direction                    
+                    # track direction
                     downward = "1" if line_split[4] == "do" else "0"
                     # track endpoint altitudes
                     alt0 = line_split[7]
@@ -80,7 +80,7 @@ df_arclen = pd.read_csv(path_arclen)
 # print(df_gram)
 # print(df_arclen)
 
-dpi_val = 150
+dpi_val = 200
 
 os.makedirs("plots/atmo_tests", exist_ok=True)
 
@@ -99,7 +99,7 @@ print("  accumulated diffs:", df_dens.sum()["diff"])
 # ---- GRAMMAGE ----
 # ------------------
 print("Processing integrated grammage test results")
-for ang in [0, 10, 45, 85]:
+for ang in [0, 10, 45, 89]:
     fig, ax = plt.subplots()
     # logscale
     ax.set_xscale("log")
@@ -114,7 +114,7 @@ for ang in [0, 10, 45, 85]:
     df_gram[(df_gram["ang"] == ang) & (df_gram["downward"] == 0)].plot.scatter(x="len",y="diff",
         title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="upward tracks")
     # grid
-    ax.grid(ls="dashed", c="0.85")    
+    ax.grid(ls="dashed", c="0.85")
     # save fig
     fig.savefig("plots/atmo_tests/gram_ang" + str(ang) + ".png", dpi=dpi_val)
     # clear fig
@@ -129,14 +129,14 @@ ax.set_axisbelow(True)
 
 i=0
 colors = ["red", "orange", "green", "blue", ]
-for ang in [0, 10, 45, 85]:
+for ang in [0, 10, 45, 89]:
     # plot tracks
     df_gram[(df_gram["ang"] == ang) & (df_gram["alt0"] < 100000)].plot.scatter(x="len",y="diff", title="integrated grammage",
      xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
     i += 1
 
 # grid
-ax.grid(ls="dashed", c="0.85")    
+ax.grid(ls="dashed", c="0.85")
 # save fig
 fig.savefig("plots/atmo_tests/gram.png", dpi=dpi_val)
 # clear fig
@@ -147,7 +147,7 @@ plt.clf()
 # ---- ARCLENGTH ----
 # -------------------
 print("Processing arclength test results")
-for ang in [0, 45, 85]:
+for ang in [0, 45, 89]:
     fig, ax = plt.subplots()
     # logscale
     ax.set_xscale("log")
@@ -162,7 +162,7 @@ for ang in [0, 45, 85]:
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["downward"] == 0)].plot.scatter(x="len",y="diff",
         title="track length from grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="upward tracks")
     # grid
-    ax.grid(ls="dashed", c="0.85")    
+    ax.grid(ls="dashed", c="0.85")
     # save fig
     fig.savefig("plots/atmo_tests/arclen_ang" + str(ang) + ".png", dpi=dpi_val)
     # clear fig
@@ -177,14 +177,14 @@ ax.set_axisbelow(True)
 
 i=0
 colors = ["red", "green", "blue"]
-for ang in [0, 45, 85]:
+for ang in [0, 45, 89]:
     # plot tracks
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["alt0"] < 100000)].plot.scatter(x="len",y="diff",title="track length from grammage",
      xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
     i += 1
 
 # grid
-ax.grid(ls="dashed", c="0.85")    
+ax.grid(ls="dashed", c="0.85")
 # save fig
 fig.savefig("plots/atmo_tests/arclen.png", dpi=dpi_val)
 # clear fig
