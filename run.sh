@@ -47,7 +47,7 @@ SUF=$1
 
 # Number of available threads
 # THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
-THREADS=2
+THREADS=8
 
 BUILD="release"
 
@@ -65,7 +65,7 @@ mkdir -p ${OUTPUT_DIR}
 source ${MAIN_DIR}/source.sh
 
 # Particles to simulate - 22=gamma, 2212=proton
-PARTICLES=(22)
+PARTICLES=(2212)
 
 # Primary energies to simulate (in GeV), corresponding to CTA energy range 20 GeV - 300 TeV
 ENERGIES=(1000)
@@ -119,7 +119,10 @@ for PART in ${PARTICLES[@]}; do
                     --disable-interaction-histograms \
                     -s $((N+1)) \
                     --injection-height 112750 \
+                    -z 0 \
                     &> ${SIM_OUTPUT}_${N}.log &
+
+                    # --max-deflection-angle 0.02 \
 
             fi
 
