@@ -189,3 +189,14 @@ ax.grid(ls="dashed", c="0.85")
 fig.savefig("plots/atmo_tests/arclen.png", dpi=dpi_val)
 # clear fig
 plt.clf()
+
+fig, ax = plt.subplots()
+filt = df_arclen[ (df_arclen["ang"] == 89) & (df_arclen["len"] > 1e4) & (df_arclen["diff"] > 2e-6) ]
+filt[df_arclen["alt0"] == 7010].plot.scatter(x="alt0",y="diff",ax=ax,color=colors[0],label="starts at 7010")
+filt[df_arclen["alt0"] == 11410].plot.scatter(x="alt0",y="diff",ax=ax,color=colors[1], label="starts at 11410")
+filt[(df_arclen["alt0"] != 11410) & (df_arclen["alt0"] != 7010)].plot.scatter(x="alt0",y="diff",ax=ax,color=colors[2], label="others")
+print(filt)
+# logscale
+# ax.set_xscale("log")
+ax.set_yscale("log")
+fig.savefig("plots/atmo_tests/investigate.png", dpi=dpi_val)
