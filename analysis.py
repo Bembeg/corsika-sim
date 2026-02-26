@@ -27,7 +27,7 @@ def energyloss():
 
     # Dictionary for dataframes
     res = {}
-    
+
     # Mark first run as reference, used for ratio plots
     ref = sim_dir[0]
 
@@ -56,7 +56,7 @@ def energyloss():
         res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Avg. energy loss per shower",
                                                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
                                                 ax=ax1, legend=True, label=name, color=color)
-    
+
         # Plot ratio subplot
         if path != ref:
             res[path][res[path]["X"] < X_limit].plot(x="X", y="ratio", yerr="ratio_err",
@@ -66,8 +66,8 @@ def energyloss():
     # Add grid
     ax1.grid(ls="dashed", c="0.85")
     ax2.grid(ls="dashed", c="0.85")
-    # ax2.set_ylim([0.7, 1.3])
-    
+    ax2.set_ylim([0.85, 1.15])
+
     # Plot and save
     plot_path = plot_dir + "eloss.png"
     fig.savefig(plot_path, dpi=dpi_val)
@@ -87,7 +87,7 @@ def production():
 
     # Dictionary for dataframes
     res = {}
-    
+
     # Mark first run as reference, used for ratio plots
     ref = sim_dir[0]
 
@@ -136,7 +136,7 @@ def production():
         # Add grid
         ax1.grid(ls="dashed", c="0.85")
         ax2.grid(ls="dashed", c="0.85")
-        # ax2.set_ylim([0, 2])
+        ax2.set_ylim([0.85, 1.15])
 
         # Plot and save
         plot_path = plot_dir + "prod_" + tag[n] + ".png"
@@ -154,10 +154,10 @@ def profile():
 
     # Dictionary for dataframes
     res = {}
-    
+
     # Mark first run as reference, used for ratio plots
     ref = sim_dir[0]
-    
+
     # Iterate over runs and calculate means and SEMs for columns
     for path in sim_dir:
         # Add values for positive and negative particles
@@ -210,7 +210,7 @@ def profile():
         # Add grid
         ax1.grid(ls="dashed", c="0.85")
         ax2.grid(ls="dashed", c="0.85")
-        # ax2.set_ylim([0, 2])
+        ax2.set_ylim([0.85, 1.15])
 
         # Plot and save
         plot_path = plot_dir + "profile_" + tag[n] + ".png"
@@ -228,7 +228,7 @@ def observation():
 
     # Dictionary for dataframes
     res = {}
-    
+
     # Mark first run as reference, used for ratio plots
     ref = sim_dir[0]
 
@@ -238,7 +238,7 @@ def observation():
         data[path]["particles"]["R"] = pow(pow(data[path]["particles"]["x"],2) + pow(data[path]["particles"]["y"],2), 0.5)
 
         res[path] = data[path]["particles"]
-    
+
     # Plotting of kinetic energy
     for n in range(len(cols)):
         # Create figure
@@ -265,7 +265,7 @@ def observation():
         plt.title("Kinetic energy on ground - " + title[n])
         plt.xlabel("$T$ [GeV]")
         plt.ylabel("$N$")
-    
+
         # Set legend
         legend = [name.split("/")[1] for name in sim_dir]
         # if (len(legend) > 1):
@@ -281,7 +281,7 @@ def observation():
     for n in range(len(cols)):
         # Create figure
         fig, ax = plt.subplots()
-            
+
         # Get 99th percentile for radius
         R_max = max(0, res[ref][abs(res[ref]["pdg"]) == pdg[n]]["R"].quantile(0.99))
 
@@ -316,17 +316,17 @@ def observation():
 
 def runtimes():
     print("6) Running runtime analysis")
-    
+
     # Dictionary for dataframes
     res = {}
-        
+
     # Mark first run as reference, used for ratio plots
     ref = sim_dir[0]
 
     # Iterate over runs
     for path in sim_dir:
         res[path] = data[path]["runtime"]
-        
+
         res[path]["rt_per_sh"] = res[path]["runtime"] / res[path]["showers"]
         res[path]["rt_diff"] = res[path]["rt_per_sh"] / res[ref]["rt_per_sh"]
 
@@ -341,8 +341,8 @@ def runtimes():
         color = colors[id]
 
         # Plot
-        data[path]["runtime"].hist(column="rt_per_sh", ax=ax, bins=24, color=color, log=False, histtype="step") 
-            
+        data[path]["runtime"].hist(column="rt_per_sh", ax=ax, bins=24, color=color, log=False, histtype="step")
+
     # Add grid
     ax.grid(ls="dashed", c="0.85")
 
@@ -357,13 +357,13 @@ def runtimes():
         legend[0] += " (ref)"
     plt.legend(legend)
 
-    # More y-axis range to make room for the legend   
+    # More y-axis range to make room for the legend
     ax.set_ylim(ax.get_ylim()[0], 1.2*ax.get_ylim()[1])
 
     # Current axis ranges
     (ymin, ymax) = ax.get_ylim()
     (xmin, xmax) = ax.get_xlim()
-    
+
     # Starting y-position for annotations of gaussian means
     y_label = (ymax-ymin)*0.04
 
@@ -406,8 +406,8 @@ def runtimes():
 
         # Plot
         if (path != ref):
-            data[path]["runtime"].hist(column="rt_diff", ax=ax, bins=16, color=color, log=False, histtype="step") 
-            
+            data[path]["runtime"].hist(column="rt_diff", ax=ax, bins=16, color=color, log=False, histtype="step")
+
     # Add grid
     ax.grid(ls="dashed", c="0.85")
 
@@ -431,7 +431,7 @@ if len(sys.argv) == 1:
 X_limit = 1030
 
 # DPI value
-dpi_val=200
+dpi_val = 300
 
 # Plot directory
 plot_dir = "plots/out/" + sys.argv[1] + "/"
@@ -500,8 +500,8 @@ print("Loaded data")
 
 # Analysis
 energyloss()
-interactions()
-production()
+# interactions()
+# production()
 profile()
 observation()
 runtimes()

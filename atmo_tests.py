@@ -84,6 +84,9 @@ dpi_val = 200
 
 os.makedirs("plots/atmo_tests", exist_ok=True)
 
+colors = ["red", "orange", "green", "blue", ]
+
+
 # -----------------
 # ---- DENSITY ----
 # -----------------
@@ -99,7 +102,7 @@ print("  accumulated diffs:", df_dens.sum()["diff"])
 # ---- GRAMMAGE ----
 # ------------------
 print("Processing integrated grammage test results")
-for ang in [0, 10, 45, 89]:
+for ang in [0, 80, 89, 89.9]:
     fig, ax = plt.subplots()
     # logscale
     ax.set_xscale("log")
@@ -128,8 +131,7 @@ ax.set_yscale("log")
 ax.set_axisbelow(True)
 
 i=0
-colors = ["red", "orange", "green", "blue", ]
-for ang in [0, 10, 45, 89]:
+for ang in [0, 80, 89, 89.9]:
     # plot tracks
     df_gram[(df_gram["ang"] == ang) & (df_gram["alt0"] < 100000)].plot.scatter(x="len",y="diff", title="integrated grammage",
      xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
@@ -147,7 +149,7 @@ plt.clf()
 # ---- ARCLENGTH ----
 # -------------------
 print("Processing arclength test results")
-for ang in [0, 45, 89]:
+for ang in [0, 80, 89, 89.9]:
     fig, ax = plt.subplots()
     # logscale
     ax.set_xscale("log")
@@ -176,8 +178,7 @@ ax.set_yscale("log")
 ax.set_axisbelow(True)
 
 i=0
-colors = ["red", "green", "blue"]
-for ang in [0, 45, 89]:
+for ang in [89.9, 89, 80, 0]:
     # plot tracks
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["alt0"] < 100000)].plot.scatter(x="len",y="diff",title="track length from grammage",
      xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
@@ -191,12 +192,22 @@ fig.savefig("plots/atmo_tests/arclen.png", dpi=dpi_val)
 plt.clf()
 
 fig, ax = plt.subplots()
-filt = df_arclen[ (df_arclen["ang"] == 89) & (df_arclen["len"] > 1e4) & (df_arclen["diff"] > 2e-6) ]
-filt[df_arclen["alt0"] == 7010].plot.scatter(x="alt0",y="diff",ax=ax,color=colors[0],label="starts at 7010")
-filt[df_arclen["alt0"] == 11410].plot.scatter(x="alt0",y="diff",ax=ax,color=colors[1], label="starts at 11410")
-filt[(df_arclen["alt0"] != 11410) & (df_arclen["alt0"] != 7010)].plot.scatter(x="alt0",y="diff",ax=ax,color=colors[2], label="others")
+filt = df_arclen[ (df_arclen["ang"] == 89.9) | (df_arclen["ang"] == 89) | (df_arclen["ang"] == 80) | (df_arclen["ang"] == 0) ]
+filt = filt[ (df_arclen["len"] > 1e3) & (df_arclen["diff"] > 1e-5) ]
 print(filt)
+
+filt[df_arclen["ang"] == 89.9].plot.scatter(x="len",y="diff", ax=ax, color=colors[0], label="angle 89.9°")
+filt[df_arclen["ang"] == 89].plot.scatter(x="len",y="diff", ax=ax, color=colors[1], label="angle 89°")
+filt[df_arclen["ang"] == 80].plot.scatter(x="len",y="diff", ax=ax, color=colors[2], label="angle 80°", title="track length outliers", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$")
+
 # logscale
-# ax.set_xscale("log")
+ax.set_xscale("log")
 ax.set_yscale("log")
-fig.savefig("plots/atmo_tests/investigate.png", dpi=dpi_val)
+fig.savefig("plots/atmo_tests/arclen_outliers.png", dpi=dpi_val)
+
+fig, ax = plt.subplots()
+ax.set_xscale("log")
+filt[df_arclen["ang"] == 89.9].plot.scatter(x="len",y="alt0", ax=ax, color=colors[0], label="angle 89.9°")
+filt[df_arclen["ang"] == 89].plot.scatter(x="len",y="alt0", ax=ax, color=colors[1], label="angle 89°")
+filt[df_arclen["ang"] == 80].plot.scatter(x="len",y="alt0", ax=ax, color=colors[2], label="angle 80°", title="track length outliers", xlabel="track length [m]", ylabel="track startpoint altitude [m]")
+fig.savefig("plots/atmo_tests/arclen_outliers2.png", dpi=dpi_val)
