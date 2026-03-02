@@ -10,8 +10,16 @@ from scipy.stats import norm
 
 
 def print_usage():
-    print("Usage: python3 analysis.py [sim-names]")
-    print("Example: python3 analysis.py pdg22_E100 pdg22_E1000")
+    print("Usage: python3 analysis.py [plot-dir] [sim-names]")
+    print("Example: python3 analysis.py pdg22 pdg22_E100 pdg22_E1000")
+
+# lower quartile
+def q25(x):
+    return x.quantile(0.25)
+
+# upper quartile
+def q75(x):
+    return x.quantile(0.75)
 
 def energyloss():
     print("1) Running energy loss analysis")
@@ -24,6 +32,10 @@ def energyloss():
     ax1.tick_params(axis='x', direction='in')
     ax2.tick_params(axis='x', direction='in', top=True)
     ax2.axhline(1, c="black")
+
+    # grid below points
+    ax1.set_axisbelow(True)
+    ax2.set_axisbelow(True)
 
     # Dictionary for dataframes
     res = {}
@@ -38,30 +50,45 @@ def energyloss():
         # Get index of this run
         id = sim_dir.index(path)
         # If this run is ref, add that to its name
-        if (id == 0 and len(sim_dir)>1): name += " (ref)"
+        if (id == 0 and len(sim_dir) > 1): name += " (ref)"
         # Get color
         color = colors[id]
 
         # Calculate means and SEMs for columns
-        res[path] = data[path]["energyloss"].groupby("X").agg({"total":["mean", "sem"]})
+        res[path] = data[path]["energyloss"].groupby("X").agg({"total":["median", q25, q75]})
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
-        # Calculate ratio vs reference
-        res[path]["ratio"] = res[path]["total_mean"] / res[ref]["total_mean"]
-
-        res[path]["ratio_err"] = res[path]["ratio"] * np.sqrt( np.square(res[path]["total_sem"] / res[path]["total_mean"]) + np.square(res[ref]["total_sem"] / res[ref]["total_mean"]) )
+        # Calculate errors and ratio vs reference
+        res[path]["ratio"] = res[path]["total_median"] / res[ref]["total_median"]
+        res[path]["ratio_errL"] = res[path]["ratio"] - res[path]["ratio"] \
+            * np.sqrt( np.square(res[path]["total_q25"] / res[path]["total_median"]) \
+            + np.square(res[ref]["total_q25"] / res[ref]["total_median"]) )
+        res[path]["ratio_errH"] = res[path]["ratio"] + res[path]["ratio"] \
+            * np.sqrt( np.square(res[path]["total_q75"] / res[path]["total_median"]) \
+            + np.square(res[ref]["total_q75"] / res[ref]["total_median"]) )
+        
+        # get relevant selection of data
+        sel = res[path][res[path]["X"] < X_limit]
 
         # Plot main subplot
-        res[path][res[path]["X"] < X_limit].plot(x="X", y="total_mean", yerr="total_sem", title="Avg. energy loss per shower",
-                                                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
-                                                ax=ax1, legend=True, label=name, color=color)
+        sel.plot(x="X", y="total_median", title="Median energy loss",
+                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
+                ax=ax1, legend=True, label=name, color=color)
+
+        # draw error band around points
+        ax1.fill_between(x=sel["X"], y1=sel["total_q25"], y2=sel["total_q75"],
+            color=(color, alpha_band), edgecolor=(color, alpha_edge))
 
         # Plot ratio subplot
         if path != ref:
-            res[path][res[path]["X"] < X_limit].plot(x="X", y="ratio", yerr="ratio_err",
-                                                    grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio vs ref.", marker=".",
-                                                    ax=ax2, legend=False, label=name, color=color)
+            sel.plot(x="X", y="ratio",grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio to ref.",
+                marker=".", ax=ax2, legend=False, label=name, color=color)
+
+            # draw error band around points
+            if (plot_ratio_errors):
+                ax2.fill_between(sel["X"], sel["ratio_errL"], sel["ratio_errH"],
+                color=(color, alpha_band), edgecolor=(color, alpha_edge))
 
     # Add grid
     ax1.grid(ls="dashed", c="0.85")
@@ -72,6 +99,7 @@ def energyloss():
     plot_path = plot_dir + "eloss.png"
     fig.savefig(plot_path, dpi=dpi_val)
     print("  - generated plot '", plot_path + "'", sep="")
+
 
 def interactions():
     print("2) Running interactions analysis")
@@ -165,14 +193,21 @@ def profile():
         data[path]["profile"]["ep"] = data[path]["profile"]["electron"] + data[path]["profile"]["positron"]
 
         # Calculate means and SEMs for columns
-        res[path] = data[path]["profile"].groupby("X").agg(["mean", "sem"])
+        res[path] = data[path]["profile"].groupby("X").agg(["median", q25, q75])
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
         # Calculate ratio vs reference
         for col in cols:
-            res[path][col + "_ratio"] = res[path][col + "_mean"] / res[ref][col + "_mean"]
-            res[path][col + "_ratio_err"] = res[path][col + "_ratio"] * np.sqrt( np.square(res[path][col + "_sem"] / res[path][col + "_mean"]) + np.square(res[ref][col + "_sem"] / res[ref][col + "_mean"]) )
+            # Calculate errors and ratio vs reference
+            res[path][col + "_ratio"] = res[path][col + "_median"] / res[ref][col + "_median"]
+
+            res[path][col + "_ratio_errL"] = res[path][col + "_ratio"] - res[path][col + "_ratio"] \
+                * np.sqrt( np.square(res[path][col + "_q25"] / res[path][col + "_median"]) \
+                + np.square(res[ref][col + "_q25"] / res[ref][col + "_median"]) )
+            res[path][col + "_ratio_errH"] = res[path][col + "_ratio"] + res[path][col + "_ratio"] \
+                * np.sqrt( np.square(res[path][col + "_q75"] / res[path][col + "_median"]) \
+                + np.square(res[ref][col + "_q75"] / res[ref][col + "_median"]) )
 
     # Iterate over plots
     for n in range(len(cols)):
@@ -185,6 +220,10 @@ def profile():
         ax2.tick_params(axis='x', direction='in', top=True)
         ax2.axhline(1, c="black")
 
+        # grid below points
+        ax1.set_axisbelow(True)
+        ax2.set_axisbelow(True)
+
         # Iterate over runs and generate plots
         for path in sim_dir:
             # Parse run name
@@ -196,16 +235,27 @@ def profile():
             # Get color
             color = colors[id]
 
+            # get relevant selection of data
+            sel = res[path][res[path]["X"] < X_limit]
+
             # Plot main subplot
-            res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_mean", yerr=cols[n] + "_sem", title="Longitudinal profile - " + title[n],
-                                                    grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n], marker=".",
-                                                    ax=ax1, legend=True, label=name, color=color)
+            sel.plot(x="X", y=cols[n] + "_median", title="Median longitudinal profile - " + title[n],
+                grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n], marker=".",
+                ax=ax1, legend=True, label=name, color=color)
+
+            # draw error band around points
+            ax1.fill_between(x=sel["X"], y1=sel[cols[n] + "_q25"], y2=sel[cols[n] + "_q75"],
+                color=(color, alpha_band), edgecolor=(color, alpha_edge))
 
             # Plot ratio subplot
             if (path != ref):
-                res[path][res[path]["X"] < X_limit].plot(x="X", y=cols[n] + "_ratio", yerr=cols[n] + "_ratio_err",
-                                                    grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio vs ref.", marker=".",
-                                                    ax=ax2, legend=False, label=name, color=color)
+                sel.plot(x="X", y=cols[n] + "_ratio", grid=True, xlabel="$X$ [g/cm$^2$]",
+                ylabel="ratio to ref.", marker=".", ax=ax2, legend=False, label=name, color=color)
+
+                # draw error band around points
+                if (plot_ratio_errors):
+                    ax2.fill_between(sel["X"], sel[cols[n] + "_ratio_errL"], sel[cols[n] + "_ratio_errH"],
+                    color=(color, alpha_band), edgecolor=(color, alpha_edge))
 
         # Add grid
         ax1.grid(ls="dashed", c="0.85")
@@ -433,9 +483,12 @@ X_limit = 1030
 # DPI value
 dpi_val = 300
 
-# Plot directory
-plot_dir = "plots/out/" + sys.argv[1] + "/"
-os.makedirs(plot_dir, exist_ok=True)
+# alpha values for error bands
+alpha_band = 0.15
+alpha_edge = 0.40
+
+# plot error bands in ratio plots
+plot_ratio_errors = True
 
 # Map modules and output files inside
 output_types = {"energyloss": "dEdX",
@@ -448,6 +501,10 @@ output_types = {"energyloss": "dEdX",
 colors=("firebrick", "mediumblue", "green", "goldenrod")
 
 # ---- END OF INPUT ----
+
+# Plot directory
+plot_dir = "plots/out/" + sys.argv[1] + "/"
+os.makedirs(plot_dir, exist_ok=True)
 
 # Declare dictionaries to hold dataframes
 data = {}
@@ -503,7 +560,7 @@ energyloss()
 # interactions()
 # production()
 profile()
-observation()
-runtimes()
+# observation()
+# runtimes()
 
 print("All done")
