@@ -3,6 +3,7 @@
 import pandas as pd
 import os
 from matplotlib import pyplot as plt
+import numpy as np
 
 
 # load test outputs
@@ -51,7 +52,7 @@ with open(path_dens, "w") as csv_dens:
                     # track inclination
                     ang = line_split[16].strip("):")
                     # test diff
-                    diff = str(abs(float(line_split[-1])))
+                    diff = line_split[-1]
                     # write to file
                     csv_gram.write(",".join([downward,alt0,alt1,track_len,ang,diff]) + "\n")
 
@@ -80,12 +81,13 @@ df_arclen = pd.read_csv(path_arclen)
 # print(df_gram)
 # print(df_arclen)
 
-dpi_val = 200
+dpi_val = 300
 
 os.makedirs("plots/atmo_tests", exist_ok=True)
 
-colors = ["red", "orange", "green", "blue", ]
+colors = ["red", "orange", "green", "blue", "violet", "black"]
 
+angles = [0, 5, 20, 80, 89, 89.9]
 
 # -----------------
 # ---- DENSITY ----
@@ -96,13 +98,15 @@ df_dens[df_dens["alt"] < 99000].plot(x="alt", y="diff", title="density", xlabel=
 ax.grid(ls="dashed", c="0.85")
 fig.savefig("plots/atmo_tests/density.png", dpi=dpi_val)
 
-print("  accumulated diffs:", df_dens.sum()["diff"])
-
 # ------------------
 # ---- GRAMMAGE ----
 # ------------------
 print("Processing integrated grammage test results")
-for ang in [0, 80, 89, 89.9]:
+
+# Get abs(diff) for negative values
+df_gram["absdiff"] = df_gram["diff"].abs()
+
+for ang in angles:
     fig, ax = plt.subplots()
     # logscale
     ax.set_xscale("log")
@@ -110,12 +114,16 @@ for ang in [0, 80, 89, 89.9]:
     # grid under points
     ax.set_axisbelow(True)
 
-    # plot downward tracks
-    df_gram[(df_gram["ang"] == ang) & (df_gram["downward"] == 1)].plot.scatter(x="len",y="diff",
-        title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="red", alpha=0.3, label="downward tracks")
-    # plot upward tracks
-    df_gram[(df_gram["ang"] == ang) & (df_gram["downward"] == 0)].plot.scatter(x="len",y="diff",
-        title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="upward tracks")
+    # plot tracks with positive diff
+    df_gram[(df_gram["ang"] == ang) & (df_gram["diff"] > 0)].plot.scatter(x="len",y="diff",
+        title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]",
+        ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="red", alpha=0.3, label="positive diff tracks")
+        
+    # plot tracks with negative diff
+    df_gram[(df_gram["ang"] == ang) & (df_gram["diff"] < 0)].plot.scatter(x="len",y="absdiff",
+        title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]",
+        ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="negative diff tracks")
+
     # grid
     ax.grid(ls="dashed", c="0.85")
     # save fig
@@ -131,16 +139,37 @@ ax.set_yscale("log")
 ax.set_axisbelow(True)
 
 i=0
-for ang in [0, 80, 89, 89.9]:
+for ang in angles:
     # plot tracks
-    df_gram[(df_gram["ang"] == ang) & (df_gram["alt0"] < 100000)].plot.scatter(x="len",y="diff", title="integrated grammage",
+    df_gram[(df_gram["ang"] == ang) & (df_gram["alt0"] < 100000) & (df_gram["diff"] > 0)].plot.scatter(x="len",y="diff", title="integrated grammage",
      xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
     i += 1
 
 # grid
 ax.grid(ls="dashed", c="0.85")
 # save fig
-fig.savefig("plots/atmo_tests/gram.png", dpi=dpi_val)
+fig.savefig("plots/atmo_tests/gram_posDiff.png", dpi=dpi_val)
+# clear fig
+plt.clf()
+
+fig, ax = plt.subplots()
+# logscale
+ax.set_xscale("log")
+ax.set_yscale("log")
+# grid under points
+ax.set_axisbelow(True)
+
+i=0
+for ang in angles:
+    # plot tracks
+    df_gram[(df_gram["ang"] == ang) & (df_gram["alt0"] < 100000) & (df_gram["diff"] < 0)].plot.scatter(x="len",y="diff", title="integrated grammage",
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
+    i += 1
+
+# grid
+ax.grid(ls="dashed", c="0.85")
+# save fig
+fig.savefig("plots/atmo_tests/gram_negDiff.png", dpi=dpi_val)
 # clear fig
 plt.clf()
 
@@ -149,7 +178,7 @@ plt.clf()
 # ---- ARCLENGTH ----
 # -------------------
 print("Processing arclength test results")
-for ang in [0, 80, 89, 89.9]:
+for ang in angles:
     fig, ax = plt.subplots()
     # logscale
     ax.set_xscale("log")
