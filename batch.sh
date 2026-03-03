@@ -1,32 +1,60 @@
 source ../source.sh
 
-# python3 merge_outputs.py pdg2212_E1000_expon
-# python3 merge_outputs.py pdg2212_E1000_interp
-# python3 merge_outputs.py pdg22_E1000_expon
-# python3 merge_outputs.py pdg22_E1000_interp
+# Run simulations
+CONFIG="interp"
+# Standard injection height
+bash run.sh $CONFIG 22 1e3 112750 0 1 10
+bash run.sh $CONFIG 22 1e4 112750 0 1 10
+bash run.sh $CONFIG 22 1e5 112750 0 1 2
+bash run.sh $CONFIG 2212 1e3 112750 0 1 10
+bash run.sh $CONFIG 2212 1e4 112750 0 1 10
+bash run.sh $CONFIG 2212 1e5 112750 0 1 2
+# Low injection height
+bash run.sh $CONFIG 22 1e3 6900 0 1 10
+bash run.sh $CONFIG 22 1e4 6900 0 1 10
+bash run.sh $CONFIG 22 1e5 6900 0 1 2
+bash run.sh $CONFIG 2212 1e3 6900 0 1 10
+bash run.sh $CONFIG 2212 1e4 6900 0 1 10
+bash run.sh $CONFIG 2212 1e5 6900 0 1 2
 
-# python3 merge_outputs.py pdg2212_E10000_expon
-# python3 merge_outputs.py pdg2212_E10000_interp
-# python3 merge_outputs.py pdg22_E10000_expon
-# python3 merge_outputs.py pdg22_E10000_interp
+# Merge outputs
+if false; then
+    # Standard injection height
+    python3 merge_outputs.py pdg22_E1e3_inj112750_z0_interp
+    python3 merge_outputs.py pdg22_E1e4_inj112750_z0_interp
+    python3 merge_outputs.py pdg22_E1e5_inj112750_z0_interp
+    python3 merge_outputs.py pdg2212_E1e3_inj112750_z0_interp
+    python3 merge_outputs.py pdg2212_E1e4_inj112750_z0_interp
+    python3 merge_outputs.py pdg2212_E1e5_inj112750_z0_interp
+    python3 merge_outputs.py pdg22_E1e3_inj112750_z0_expon
+    python3 merge_outputs.py pdg22_E1e4_inj112750_z0_expon
+    python3 merge_outputs.py pdg22_E1e5_inj112750_z0_expon
+    python3 merge_outputs.py pdg2212_E1e3_inj112750_z0_expon
+    python3 merge_outputs.py pdg2212_E1e4_inj112750_z0_expon
+    python3 merge_outputs.py pdg2212_E1e5_inj112750_z0_expon
+    # Low injection height
+    python3 merge_outputs.py pdg22_E1e3_inj6900_z0_interp
+    python3 merge_outputs.py pdg22_E1e4_inj6900_z0_interp
+    python3 merge_outputs.py pdg22_E1e5_inj6900_z0_interp
+    python3 merge_outputs.py pdg2212_E1e3_inj6900_z0_interp
+    python3 merge_outputs.py pdg2212_E1e4_inj6900_z0_interp
+    python3 merge_outputs.py pdg2212_E1e5_inj6900_z0_interp
+    python3 merge_outputs.py pdg22_E1e3_inj6900_z0_expon
+    python3 merge_outputs.py pdg22_E1e4_inj6900_z0_expon
+    python3 merge_outputs.py pdg22_E1e5_inj6900_z0_expon
+    python3 merge_outputs.py pdg2212_E1e3_inj6900_z0_expon
+    python3 merge_outputs.py pdg2212_E1e4_inj6900_z0_expon
+    python3 merge_outputs.py pdg2212_E1e5_inj6900_z0_expon
+fi
 
-# python3 merge_outputs.py pdg2212_E100000_expon
-# python3 merge_outputs.py pdg2212_E100000_interp
-
-# python3 analysis.py pdg2212_E1000 pdg2212_E1000_expon pdg2212_E1000_interp
-# python3 analysis.py pdg2212_E10000 pdg2212_E10000_expon pdg2212_E10000_interp
-# python3 analysis.py pdg2212_E100000 pdg2212_E100000_expon pdg2212_E100000_interp
-
-# python3 analysis.py pdg22_E1000 pdg22_E1000_expon pdg22_E1000_interp
-# python3 analysis.py pdg22_E10000 pdg22_E10000_expon pdg22_E10000_interp
-
-python3 merge_outputs.py pdg2212_E1e3_expon
-python3 merge_outputs.py pdg2212_E1e3_interp
-python3 merge_outputs.py pdg2212_E1e4_expon
-python3 merge_outputs.py pdg2212_E1e4_interp
-python3 merge_outputs.py pdg2212_E1e5_expon
-python3 merge_outputs.py pdg2212_E1e5_interp
-
-python3 analysis.py pdg2212_E1e3 pdg2212_E1e3_expon pdg2212_E1e3_interp
-python3 analysis.py pdg2212_E1e4 pdg2212_E1e4_expon pdg2212_E1e4_interp
-python3 analysis.py pdg2212_E1e5 pdg2212_E1e5_expon pdg2212_E1e5_interp
+# Analysis
+if false; then
+    # Standard injection height
+    python3 pdg22_E1e3_stdAlt pdg22_E1e3_inj112750_z0_expon pdg22_E1e3_inj112750_z0_interp
+    python3 pdg22_E1e4_stdAlt pdg22_E1e4_inj112750_z0_expon pdg22_E1e4_inj112750_z0_interp
+    python3 pdg22_E1e5_stdAlt pdg22_E1e5_inj112750_z0_expon pdg22_E1e5_inj112750_z0_interp
+    # Low injection height
+    python3 pdg22_E1e3_lowAlt pdg22_E1e3_inj6900_z0_expon pdg22_E1e3_inj6900_z0_interp
+    python3 pdg22_E1e4_lowAlt pdg22_E1e4_inj6900_z0_expon pdg22_E1e4_inj6900_z0_interp
+    python3 pdg22_E1e5_lowAlt pdg22_E1e5_inj6900_z0_expon pdg22_E1e5_inj6900_z0_interp
+fi

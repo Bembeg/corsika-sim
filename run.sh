@@ -3,8 +3,7 @@
 
 print_usage() {
     echo "Usage:"
-    echo "  Run simulations: ./$0 [suffix]"
-    echo "  Run and profile: ./$0 [suffix] --profile"
+    echo "  Run simulations: ./$0 [suffix] [PID] [energy] [injHeight] [zenith] [nShowers] [nRuns]"
 }
 
 get_threads() {
@@ -26,7 +25,7 @@ keep_checking() {
         # Wait 5 seconds
         sleep 5
 
-        # Clear line and Carriage return
+        # Clear line and carriage return
         echo -en "\033[2K\r"
     done
 
@@ -42,12 +41,24 @@ fi
 # PID of the main process
 MAIN_PID=$$
 
-# Suffix
+# Name suffix
 SUF=$1
+# Primary particle PDG code
+PDG=$2
+# Primary particle energy (in GeV)
+ENE=$3
+# Injection height (in m)
+INJ=$4
+# Zenith angle
+ZEN=$5
+# Number of showers in each run
+NSHO=$6
+# Number of runs
+NRUN=$7
 
 # Number of available threads
 # THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
-THREADS=8
+THREADS=2
 
 BUILD="release"
 
@@ -64,119 +75,71 @@ mkdir -p ${OUTPUT_DIR}
 # Enter C8 environment
 source ${MAIN_DIR}/source.sh
 
-# Particles to simulate - 22=gamma, 2212=proton
-PARTICLES=(2212)
+echo "Shower simulation configuration:"
 
-# Primary energies to simulate (in GeV), corresponding to CTA energy range 20 GeV - 300 TeV
-ENERGIES=(1000)
+# Determine output directory name for this simulation
+SIM_OUTPUT="${OUTPUT_DIR}/pdg${PDG}_E${ENE}_inj${INJ}_z${ZEN}_${SUF}"
+echo " - PDG     :  $PDG"
+echo " - Energy  :  $ENE"
+echo " - Inj. H  :  $INJ"
+echo " - Zenith  :  $ZEN"
+echo " - Showers :  $NSHO"
+echo " - Runs    :  $NRUN"
+echo " - Suffix  :  $SUF"
+echo " - Output  :  ${SIM_OUTPUT}"
 
-# Number of showers in each simulation
-SHOWERS=10
+for N in $(seq 0 1 $((NRUN-1))); do
+    echo -en "\033[2K\rRunning: $((N+1))/$NRUN"
 
-# Number of runs for each configuration
-RUNS=50
+    RUN_OUTPUT=${SIM_OUTPUT}/run_$N
 
-echo "Running shower simulations:"
+    # Check if output directory exists for this simulation
+    if [ -d ${RUN_OUTPUT} ]; then
+        # rm -rf ${RUN_OUTPUT}
+        continue
+    fi
 
-# Run simulations
-for PART in ${PARTICLES[@]}; do
-    for ENE in ${ENERGIES[@]}; do
-        # Determine output directory name for this simulation
-        if [ "$1" = "--profile" ]; then
-            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}_prof"
-        else
-            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}"
-        fi
+    # Run Corsika
+    ${C8_EXEC} \
+        --nevent $NSHO \
+        --pdg $PDG \
+        -E $ENE \
+        -f ${RUN_OUTPUT} \
+        --disable-interaction-histograms \
+        -s $((N+1)) \
+        --injection-height $INJ \
+        -z $ZEN \
+        &> ${SIM_OUTPUT}_${N}.log &
 
-        for N in $(seq 0 1 $((RUNS-1))); do
-            echo -en "\033[2K\r    Primary particle PDG: $PART, energy: $ENE GeV, running $((N+1))/$RUNS"
+        # --max-deflection-angle 0.02 \
 
-            RUN_OUTPUT=${SIM_OUTPUT}/run_$N
+    # Get PID of the new process
+    PID=$!
+    RUNS+=($PID)
 
-            # Check if output directory exists for this simulation
-            if [ -d ${RUN_OUTPUT} ]; then
-                # echo "  Simulation output already exists for Primary particle PDG: $PART, energy: $ENE GeV"
-                # rm -rf ${RUN_OUTPUT}
-                continue
-            fi
+    # Wait after starting a simulation run
+    sleep 0.1
 
-            if [ "$1" = "--profile" ]; then
-                # Run Corsika with valgrind profiling
-                valgrind --tool=callgrind --callgrind-out-file=${SIM_OUTPUT}_${N}.prof --cache-sim=no \
-                    ${C8_EXEC} \
-                        --nevent $SHOWERS \
-                        --pdg $PART \
-                        -E $ENE \
-                        -f ${RUN_OUTPUT} \
-                        &> ${SIM_OUTPUT}_${N}.log &
-            else
-                # Run Corsika
-                ${C8_EXEC} \
-                    --nevent $SHOWERS \
-                    --pdg $PART \
-                    -E $ENE \
-                    -f ${RUN_OUTPUT} \
-                    --disable-interaction-histograms \
-                    -s $((N+1)) \
-                    --injection-height 112750 \
-                    -z 0 \
-                    &> ${SIM_OUTPUT}_${N}.log &
-
-                    # --max-deflection-angle 0.02 \
-
-            fi
-
-            # Get PID of the new process
-            PID=$!
-            RUNS+=($PID)
-
-            # Profiling using Perf
-            # sudo perf record -p $PID -F 999 -g -o ${RUN_OUTPUT}.data &
-
-            # Wait after starting a simulation run
-            sleep 0.1
-
-            # Keep waiting until some threads are free
-            while [ $(get_threads) -ge $THREADS ]; do
-                sleep 1
-            done
-        done
-
-        # Newline
-        echo
+    # Keep waiting until some threads are free
+    while [ $(get_threads) -ge $THREADS ]; do
+        sleep 1
     done
 done
 
-echo "Waiting for simulations to finish"
+# Newline
+echo
 
-# Keep checking running processes
-# keep_checking
+echo "Waiting for simulations to finish"
 
 # Wait for all simulations to finish
 wait
 
 echo "All done"
 
-# Move log files into the respective output directories and print runtimes
-# echo "Runtimes:"
-for PART in ${PARTICLES[@]}; do
-    for ENE in ${ENERGIES[@]}; do
-        # Determine output directory name for this simulation
-        if [ "$1" = "--profile" ]; then
-            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}_prof"
-        else
-            SIM_OUTPUT="${OUTPUT_DIR}/pdg${PART}_E${ENE}_${SUF}"
-        fi
-
-        for N in $(seq 0 1 $((RUNS-1))); do
-            mv ${SIM_OUTPUT}_${N}.prof ${SIM_OUTPUT}/run_$N/run.prof 2>/dev/null
-            mv ${SIM_OUTPUT}_${N}.log ${SIM_OUTPUT}/run_$N/run.log 2>/dev/null
-            # echo "  PDG: $PART, energy: $ENE, $(cat ${RUN_OUTPUT}/summary.yaml | grep "runtime:")"
-        done
-    done
+# Move log files into the respective output directories
+for N in $(seq 0 1 $((NRUN-1))); do
+    mv ${SIM_OUTPUT}_${N}.log ${SIM_OUTPUT}/run_$N/run.log 2>/dev/null
 done
 
 # Clean up leftover files from the run
 rm -f .timer.out fort.*
-
-exit 0
