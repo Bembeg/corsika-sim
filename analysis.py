@@ -93,7 +93,10 @@ def energyloss():
     # Add grid
     ax1.grid(ls="dashed", c="0.85")
     ax2.grid(ls="dashed", c="0.85")
-    ax2.set_ylim([0.85, 1.15])
+    ax2.set_ylim(ratio_range)
+
+    # Legend fontsize
+    ax1.legend(fontsize="small")
 
     # Plot and save
     plot_path = plot_dir + "eloss.png"
@@ -164,7 +167,7 @@ def production():
         # Add grid
         ax1.grid(ls="dashed", c="0.85")
         ax2.grid(ls="dashed", c="0.85")
-        ax2.set_ylim([0.85, 1.15])
+        ax2.set_ylim(ratio_range)
 
         # Plot and save
         plot_path = plot_dir + "prod_" + tag[n] + ".png"
@@ -260,7 +263,10 @@ def profile():
         # Add grid
         ax1.grid(ls="dashed", c="0.85")
         ax2.grid(ls="dashed", c="0.85")
-        ax2.set_ylim([0.85, 1.15])
+        ax2.set_ylim(ratio_range)
+
+        # Legend fontsize
+        ax1.legend(fontsize="small")
 
         # Plot and save
         plot_path = plot_dir + "profile_" + tag[n] + ".png"
@@ -488,7 +494,10 @@ alpha_band = 0.15
 alpha_edge = 0.40
 
 # plot error bands in ratio plots
-plot_ratio_errors = True
+plot_ratio_errors = False
+
+# ratio subplot y-axis range
+ratio_range = [0.85, 1.15]
 
 # Map modules and output files inside
 output_types = {"energyloss": "dEdX",
