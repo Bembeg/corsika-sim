@@ -5,9 +5,10 @@ inpath ="data/USStdBK_full.csv"
 outpath = "data/atmprof_USStdBK.dat"
 
 alts = list(range(0, 115000, 100))
+alts += list(range(0, 100, 1))
 alts += list(range(6900, 7100, 1))
 alts += list(range(11300, 11500, 1))
-alts += list(range(99980, 100005, 1))
+alts += list(range(99900, 100100, 1))
 
 with open(inpath, "r") as infile:
     content = infile.readlines()

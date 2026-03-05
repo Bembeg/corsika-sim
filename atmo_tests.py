@@ -87,7 +87,7 @@ os.makedirs("plots/atmo_tests", exist_ok=True)
 
 colors = ["red", "orange", "green", "blue", "violet", "black"]
 
-angles = [0, 5, 20, 80, 89, 89.9]
+angles = [0, 80, 89, 89.9]
 
 # -----------------
 # ---- DENSITY ----
@@ -173,6 +173,27 @@ fig.savefig("plots/atmo_tests/gram_negDiff.png", dpi=dpi_val)
 # clear fig
 plt.clf()
 
+fig, ax = plt.subplots()
+# logscale
+ax.set_xscale("log")
+ax.set_yscale("log")
+# grid under points
+ax.set_axisbelow(True)
+
+i=0
+for ang in angles:
+    # plot tracks
+    df_gram[(df_gram["ang"] == ang) & (df_gram["absdiff"] > 1e-11)].plot.scatter(x="len",y="absdiff", title="integrated grammage",
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
+    i += 1
+
+# grid
+ax.grid(ls="dashed", c="0.85")
+# save fig
+fig.savefig("plots/atmo_tests/gram.png", dpi=dpi_val)
+# clear fig
+plt.clf()
+
 
 # -------------------
 # ---- ARCLENGTH ----
@@ -246,6 +267,27 @@ for ang in angles:
 ax.grid(ls="dashed", c="0.85")
 # save fig
 fig.savefig("plots/atmo_tests/arclen_posDiff.png", dpi=dpi_val)
+# clear fig
+plt.clf()
+
+fig, ax = plt.subplots()
+# logscale
+ax.set_xscale("log")
+ax.set_yscale("log")
+# grid under points
+ax.set_axisbelow(True)
+
+i=0
+for ang in angles:
+    # plot tracks
+    df_arclen[(df_arclen["ang"] == ang)].plot.scatter(x="len",y="absdiff",title="track length from grammage",
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
+    i += 1
+
+# grid
+ax.grid(ls="dashed", c="0.85")
+# save fig
+fig.savefig("plots/atmo_tests/arclen.png", dpi=dpi_val)
 # clear fig
 plt.clf()
 
