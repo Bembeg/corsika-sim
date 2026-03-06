@@ -72,9 +72,10 @@ def energyloss():
         sel = res[path][res[path]["X"] < X_limit]
 
         # Plot main subplot
-        sel.plot(x="X", y="total_median", title="Median energy loss",
+        sel.plot(x="X", y="total_median",
                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
                 ax=ax1, legend=True, label=name, color=color)
+
 
         # draw error band around points
         ax1.fill_between(x=sel["X"], y1=sel["total_q25"], y2=sel["total_q75"],
@@ -90,13 +91,15 @@ def energyloss():
                 ax2.fill_between(sel["X"], sel["ratio_errL"], sel["ratio_errH"],
                 color=(color, alpha_band), edgecolor=(color, alpha_edge))
 
+    ax1.set_title("Median energy loss", loc="left")
+
     # Add grid
     ax1.grid(ls="dashed", c="0.85")
     ax2.grid(ls="dashed", c="0.85")
     ax2.set_ylim(ratio_range)
 
-    # Legend fontsize
-    ax1.legend(fontsize="small")
+    # Legend fontsize and position
+    ax1.legend(fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
 
     # Plot and save
     plot_path = plot_dir + "eloss.png"
@@ -242,7 +245,7 @@ def profile():
             sel = res[path][res[path]["X"] < X_limit]
 
             # Plot main subplot
-            sel.plot(x="X", y=cols[n] + "_median", title="Median longitudinal profile - " + title[n],
+            sel.plot(x="X", y=cols[n] + "_median",
                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel=label[n], marker=".",
                 ax=ax1, legend=True, label=name, color=color)
 
@@ -260,13 +263,16 @@ def profile():
                     ax2.fill_between(sel["X"], sel[cols[n] + "_ratio_errL"], sel[cols[n] + "_ratio_errH"],
                     color=(color, alpha_band), edgecolor=(color, alpha_edge))
 
+        # plot title
+        ax1.set_title("Median longitudinal\nprofile - " + title[n], loc="left")
+
         # Add grid
         ax1.grid(ls="dashed", c="0.85")
         ax2.grid(ls="dashed", c="0.85")
         ax2.set_ylim(ratio_range)
 
         # Legend fontsize
-        ax1.legend(fontsize="small")
+        ax1.legend(fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
 
         # Plot and save
         plot_path = plot_dir + "profile_" + tag[n] + ".png"
@@ -298,10 +304,25 @@ def observation():
     # Plotting of kinetic energy
     for n in range(len(cols)):
         # Create figure
-        fig, ax = plt.subplots()
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
+        # Set vertical gap between subplots
+        plt.subplots_adjust(hspace=0.05)
+        # Set x-axis ticks for subplots
+        ax1.tick_params(axis='x', direction='in')
+        ax2.tick_params(axis='x', direction='in', top=True)
+        ax2.axhline(1, c="black")
 
-        # Get 95th percentile for kinetic energy
-        T_max = max(0, res[ref][abs(res[ref]["pdg"]) == pdg[n]]["kinetic_energy"].quantile(0.95))
+        # grid below points
+        ax1.set_axisbelow(True)
+        ax2.set_axisbelow(True)
+        
+        # Get 99.99th percentile for kinetic energy for axis range and binning
+        T_max = max(0, res[ref][abs(res[ref]["pdg"]) == pdg[n]]["kinetic_energy"].quantile(0.9999))
+        bins = np.linspace(0, T_max, 128)
+
+        ref_vals = res[ref][abs(res[ref]["pdg"]) == pdg[n]]["kinetic_energy"]
+        ref_vals_hist, _ = np.histogram(ref_vals, bins)
+
 
         # Iterate over runs and generate plots
         for path in sim_dir:
@@ -310,23 +331,45 @@ def observation():
             # Get color
             color = colors[id]
 
+            vals = res[path][abs(res[path]["pdg"]) == pdg[n]]["kinetic_energy"]
+            vals_hist, _ = np.histogram(vals, bins)
+
             # Plot
-            res[path][abs(res[path]["pdg"]) == pdg[n]].hist(column="kinetic_energy", ax=ax, bins=128,
-            range=[0, T_max], color=color, log=True, histtype="step")
+            ax1.stairs(
+                vals_hist,
+                bins,
+                fill=False,
+                color=color)
+
+            ratio = vals_hist / ref_vals_hist
+           
+            ax2.stairs(
+                ratio,
+                bins,
+                fill=False,
+                color=color)
+
+        # logscale
+        ax1.set_yscale("log")
+
+        # plot title
+        ax1.set_title("Energy on ground\nlevel - " + title[n], loc="left")
 
         # Add grid
-        ax.grid(ls="dashed", c="0.85")
+        ax1.grid(ls="dashed", c="0.85")
+        ax2.grid(ls="dashed", c="0.85")
+        # ax2.set_ylim(ratio_range)
 
         # Set title and axis labels
-        plt.title("Kinetic energy on ground - " + title[n])
-        plt.xlabel("$T$ [GeV]")
-        plt.ylabel("$N$")
+        ax1.set_ylabel("$N$")
+        ax2.set_xlabel("$T$ [GeV]")
+        ax2.set_ylabel("ratio to ref.")
 
         # Set legend
         legend = [name.split("/")[1] for name in sim_dir]
-        # if (len(legend) > 1):
-        #     legend[0] += " (ref)"
-        plt.legend(legend)
+        if (len(legend) > 1):
+            legend[0] += " (ref)"
+        ax1.legend(legend, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
 
         # Plot and save
         plot_path = plot_dir + "ground_Ekin_" + tag[n] + ".png"
@@ -569,7 +612,7 @@ energyloss()
 # interactions()
 # production()
 profile()
-# observation()
-# runtimes()
+observation()
+runtimes()
 
 print("All done")
