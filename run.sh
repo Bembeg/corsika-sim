@@ -134,7 +134,7 @@ echo "Waiting for simulations to finish"
 # Wait for all simulations to finish
 wait
 
-echo "All done"
+echo -e "All done\n"
 
 # Move log files into the respective output directories
 for N in $(seq 0 1 $((NRUN-1))); do

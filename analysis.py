@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 # Script for analysis of Corsika8 outputs
 
-import pandas as pd
-import numpy as np
 import os
 import sys
-from matplotlib import pyplot as plt
+import numpy as np
+import pandas as pd
 from scipy.stats import norm
+import matplotlib.lines as mlines
+from matplotlib import pyplot as plt
 
 
 def print_usage():
@@ -58,24 +59,21 @@ def energyloss():
         res[path] = data[path]["energyloss"].groupby("X").agg({"total":["median", q25, q75]})
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
-
-        # Calculate errors and ratio vs reference
-        res[path]["ratio"] = res[path]["total_median"] / res[ref]["total_median"]
-        res[path]["ratio_errL"] = res[path]["ratio"] - res[path]["ratio"] \
-            * np.sqrt( np.square(res[path]["total_q25"] / res[path]["total_median"]) \
-            + np.square(res[ref]["total_q25"] / res[ref]["total_median"]) )
-        res[path]["ratio_errH"] = res[path]["ratio"] + res[path]["ratio"] \
-            * np.sqrt( np.square(res[path]["total_q75"] / res[path]["total_median"]) \
-            + np.square(res[ref]["total_q75"] / res[ref]["total_median"]) )
         
+        # Calculate errors and ratio vs reference
+        res[path]["errH"] = res[path]["total_q75"] - res[path]["total_median"]
+        res[path]["errL"] = res[path]["total_median"] - res[path]["total_q25"]
+        res[path]["ratio"] = res[path]["total_median"] / res[ref]["total_median"]
+        res[path]["ratio_errH"] = res[path]["ratio"] + res[path]["ratio"] * np.sqrt( np.square(res[path]["errH"] / res[path]["total_median"]) + np.square(res[ref]["errH"] / res[ref]["total_median"]))
+        res[path]["ratio_errL"] = res[path]["ratio"] - res[path]["ratio"] * np.sqrt( np.square(res[path]["errL"] / res[path]["total_median"]) + np.square(res[ref]["errL"] / res[ref]["total_median"]))
+
         # get relevant selection of data
         sel = res[path][res[path]["X"] < X_limit]
 
         # Plot main subplot
         sel.plot(x="X", y="total_median",
                 grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="$E_{loss}$ [GeV]", marker=".",
-                ax=ax1, legend=True, label=name, color=color)
-
+                ax=ax1, legend=True, label=name, color=color, linestyle=linestyles[0])
 
         # draw error band around points
         ax1.fill_between(x=sel["X"], y1=sel["total_q25"], y2=sel["total_q75"],
@@ -83,8 +81,8 @@ def energyloss():
 
         # Plot ratio subplot
         if path != ref:
-            sel.plot(x="X", y="ratio",grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio to ref.",
-                marker=".", ax=ax2, legend=False, label=name, color=color)
+            sel.plot(x="X", y="ratio", grid=True, xlabel="$X$ [g/cm$^2$]", ylabel="ratio to ref.",
+                marker=".", ax=ax2, legend=False, label=name, color=color, linestyle=linestyles[0])
 
             # draw error band around points
             if (plot_ratio_errors):
@@ -203,17 +201,17 @@ def profile():
         res[path].columns = res[path].columns.map('_'.join)
         res[path] = res[path].reset_index()
 
-        # Calculate ratio vs reference
+        # Calculate errors and ratio vs reference
         for col in cols:
-            # Calculate errors and ratio vs reference
+            res[path][col + "_errL"] = res[path][col + "_median"] - res[path][col + "_q25"]
+            res[path][col + "_errH"] = res[path][col + "_q75"] - res[path][col + "_median"]
             res[path][col + "_ratio"] = res[path][col + "_median"] / res[ref][col + "_median"]
-
             res[path][col + "_ratio_errL"] = res[path][col + "_ratio"] - res[path][col + "_ratio"] \
-                * np.sqrt( np.square(res[path][col + "_q25"] / res[path][col + "_median"]) \
-                + np.square(res[ref][col + "_q25"] / res[ref][col + "_median"]) )
+                * np.sqrt( np.square(res[path][col + "_errL"] / res[path][col + "_median"]) \
+                + np.square(res[ref][col + "_errL"] / res[ref][col + "_median"]) )
             res[path][col + "_ratio_errH"] = res[path][col + "_ratio"] + res[path][col + "_ratio"] \
-                * np.sqrt( np.square(res[path][col + "_q75"] / res[path][col + "_median"]) \
-                + np.square(res[ref][col + "_q75"] / res[ref][col + "_median"]) )
+                * np.sqrt( np.square(res[path][col + "_errH"] / res[path][col + "_median"]) \
+                + np.square(res[ref][col + "_errH"] / res[ref][col + "_median"]) )
 
     # Iterate over plots
     for n in range(len(cols)):
@@ -316,14 +314,24 @@ def observation():
         ax1.set_axisbelow(True)
         ax2.set_axisbelow(True)
         
-        # Get 99.99th percentile for kinetic energy for axis range and binning
-        T_max = max(0, res[ref][abs(res[ref]["pdg"]) == pdg[n]]["kinetic_energy"].quantile(0.9999))
-        bins = np.linspace(0, T_max, 128)
+        # Get axis ranges and binning
+        T_min = res[ref][abs(res[ref]["pdg"]) == pdg[n]]["kinetic_energy"].quantile(0.0001)
+        T_max = res[ref][abs(res[ref]["pdg"]) == pdg[n]]["kinetic_energy"].quantile(0.999)
+        bins = np.logspace(np.log10(T_min), np.log10(T_max), n_bins+1)
 
-        ref_vals = res[ref][abs(res[ref]["pdg"]) == pdg[n]]["kinetic_energy"]
-        ref_vals_hist, _ = np.histogram(ref_vals, bins)
+        # get bin centers
+        bin_centers = []
+        for i in range(len(bins)):
+            if i != (len(bins) - 1):
+                # calculate bin center
+                bin_center = pow(10,(np.log10(bins[i]) + np.log10(bins[i+1])) / 2)
+                # append to list
+                bin_centers.append(bin_center)
 
-
+        # histogram of reference values and poisson errors (sqrt(bin))
+        ref_hist, _ = np.histogram(res[ref][abs(res[ref]["pdg"]) == pdg[n]]["kinetic_energy"], bins)
+        ref_err = [np.sqrt(x)/2 for x in ref_hist]
+        
         # Iterate over runs and generate plots
         for path in sim_dir:
             # Get index of this run
@@ -331,45 +339,54 @@ def observation():
             # Get color
             color = colors[id]
 
-            vals = res[path][abs(res[path]["pdg"]) == pdg[n]]["kinetic_energy"]
-            vals_hist, _ = np.histogram(vals, bins)
+            # histogram of values and errors
+            hist, _ = np.histogram(res[path][abs(res[path]["pdg"]) == pdg[n]]["kinetic_energy"], bins)
+            err = [np.sqrt(x)/2 for x in hist]
 
-            # Plot
-            ax1.stairs(
-                vals_hist,
-                bins,
-                fill=False,
-                color=color)
+            # plot points
+            ax1.plot(bin_centers, hist, color=color, linestyle=linestyles[0], marker=".")
+            # plot error bands
+            ax1.fill_between(bin_centers, hist - err, hist+err, color=(color, alpha_band), edgecolor=(color, alpha_edge), label=None)
 
-            ratio = vals_hist / ref_vals_hist
-           
-            ax2.stairs(
-                ratio,
-                bins,
-                fill=False,
-                color=color)
+            # plot ratio vs reference
+            if (path != ref):
+                # calculate ratio and errors
+                ratio = hist / ref_hist
+                ratio_err = 0.1
+                ratio_err = ratio * np.sqrt(np.square(ref_err / ref_hist) + np.square(err / hist))
+
+                # plot ratio points
+                ax2.plot(bin_centers, ratio, color=color, marker=".", linestyle=linestyles[0], label=None)
+                # plot error bands
+                ax2.fill_between(bin_centers, ratio - ratio_err, ratio + ratio_err, color=(color, alpha_band), edgecolor=(color, alpha_edge), label=None)
 
         # logscale
+        ax1.set_xscale("log")
         ax1.set_yscale("log")
-
-        # plot title
-        ax1.set_title("Energy on ground\nlevel - " + title[n], loc="left")
+        
+        # plot title and axis labels
+        ax1.set_title("Kinetic energy\non ground - " + title[n], loc="left")
+        ax1.set_ylabel("$N$")
+        ax2.set_xlabel("$T$ [GeV]")
+        ax2.set_ylabel("ratio to ref.")
 
         # Add grid
         ax1.grid(ls="dashed", c="0.85")
         ax2.grid(ls="dashed", c="0.85")
         # ax2.set_ylim(ratio_range)
 
-        # Set title and axis labels
-        ax1.set_ylabel("$N$")
-        ax2.set_xlabel("$T$ [GeV]")
-        ax2.set_ylabel("ratio to ref.")
-
-        # Set legend
+        # legend entries
         legend = [name.split("/")[1] for name in sim_dir]
         if (len(legend) > 1):
             legend[0] += " (ref)"
-        ax1.legend(legend, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
+
+        # proxies for legend
+        proxies = []
+        for i in range(len(sim_dir)):
+            proxies.append(mlines.Line2D([], [], color=colors[i], marker=".", label=legend[i]))
+
+        # plot legend
+        ax1.legend(handles=proxies, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
 
         # Plot and save
         plot_path = plot_dir + "ground_Ekin_" + tag[n] + ".png"
@@ -379,11 +396,36 @@ def observation():
     # Plotting of radius
     for n in range(len(cols)):
         # Create figure
-        fig, ax = plt.subplots()
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
+        # Set vertical gap between subplots
+        plt.subplots_adjust(hspace=0.05)
+        # Set x-axis ticks for subplots
+        ax1.tick_params(axis='x', direction='in')
+        ax2.tick_params(axis='x', direction='in', top=True)
+        ax2.axhline(1, c="black")
 
-        # Get 99th percentile for radius
-        R_max = max(0, res[ref][abs(res[ref]["pdg"]) == pdg[n]]["R"].quantile(0.99))
+        # grid below points
+        ax1.set_axisbelow(True)
+        ax2.set_axisbelow(True)
+        
+        # Get axis ranges and histogram binning
+        R_min = 0
+        R_max = res[ref][abs(res[ref]["pdg"]) == pdg[n]]["R"].quantile(0.99)
+        bins = np.linspace(R_min, R_max, n_bins+1)
 
+        # get bin centers
+        bin_centers = []
+        for i in range(len(bins)):
+            if i != (len(bins) - 1):
+                # calculate bin center
+                bin_center = (bins[i] + bins[i+1]) / 2
+                # append to list
+                bin_centers.append(bin_center)
+
+        # Histogram of reference values and poisson errors (sqrt(bin))
+        ref_hist, _ = np.histogram(res[ref][abs(res[ref]["pdg"]) == pdg[n]]["R"], bins)
+        ref_err = [np.sqrt(x)/2 for x in ref_hist]
+   
         # Iterate over runs and generate plots
         for path in sim_dir:
             # Get index of this run
@@ -391,22 +433,53 @@ def observation():
             # Get color
             color = colors[id]
 
-            # Plot
-            res[path][abs(res[path]["pdg"]) == pdg[n]].hist(column="R", ax=ax, bins=128, range=[0, R_max], color=color, log=True, histtype="step")
+            # histogram of values and poisson errors
+            hist, _ = np.histogram(res[path][abs(res[path]["pdg"]) == pdg[n]]["R"], bins)
+            err = [np.sqrt(x)/2 for x in hist]
+
+            # plot points
+            ax1.plot(bin_centers, hist, color=color, linestyle=linestyles[0], marker=".")
+            # plot error bands
+            ax1.fill_between(bin_centers, hist - err, hist+err, color=(color, alpha_band), edgecolor=(color, alpha_edge), label=None)
+
+            # plot ratio vs reference
+            if (path != ref):
+                # calculate ratio and errors
+                ratio = hist / ref_hist
+                ratio_err = 0.1
+                ratio_err = ratio * np.sqrt(np.square(ref_err / ref_hist) + np.square(err / hist))
+                
+                # plot points
+                ax2.plot(bin_centers, ratio, color=color, marker=".", linestyle=linestyles[0], label=None)
+                # plot error band
+                ax2.fill_between(bin_centers, ratio - ratio_err, ratio + ratio_err, color=(color, alpha_band), edgecolor=(color, alpha_edge), label=None)
+
+        # logscale
+        # ax1.set_xscale("log")
+        ax1.set_yscale("log")
+        
+        # plot title and axis labels
+        ax1.set_title("Hit radius on\nground - " + title[n], loc="left")
+        ax1.set_ylabel("$N$")
+        ax2.set_xlabel("$R$ [m]")
+        ax2.set_ylabel("ratio to ref.")
 
         # Add grid
-        ax.grid(ls="dashed", c="0.85")
+        ax1.grid(ls="dashed", c="0.85")
+        ax2.grid(ls="dashed", c="0.85")
+        # ax2.set_ylim(ratio_range)
 
-        # Set title and axis labels
-        plt.title("Radius on ground - " + title[n])
-        plt.xlabel("$R$ [m]")
-        plt.ylabel("$N$")
-
-        # Set legend
+        # legend entries
         legend = [name.split("/")[1] for name in sim_dir]
-        # if (len(legend) > 1):
-        #     legend[0] += " (ref)"
-        plt.legend(legend)
+        if (len(legend) > 1):
+            legend[0] += " (ref)"
+
+        # proxies for legend
+        proxies = []
+        for i in range(len(sim_dir)):
+            proxies.append(mlines.Line2D([], [], color=colors[i], marker=".", label=legend[i]))
+
+        ax1.legend(handles=proxies, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
 
         # Plot and save
         plot_path = plot_dir + "ground_R_" + tag[n] + ".png"
@@ -536,11 +609,20 @@ dpi_val = 300
 alpha_band = 0.15
 alpha_edge = 0.40
 
+# linestyles
+linestyles=["solid", (0, (1, 1)), "none"]
+
 # plot error bands in ratio plots
-plot_ratio_errors = False
+plot_ratio_errors = True
+
+# cap size for errorbars
+err_capsize = 2
 
 # ratio subplot y-axis range
 ratio_range = [0.85, 1.15]
+
+# histogram bins
+n_bins = 64
 
 # Map modules and output files inside
 output_types = {"energyloss": "dEdX",
