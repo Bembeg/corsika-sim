@@ -87,14 +87,14 @@ os.makedirs("plots/atmo_tests", exist_ok=True)
 
 colors = ["red", "orange", "green", "blue", "violet", "black"]
 
-angles = [0, 80, 89, 89.9]
+angles = [0, 40, 80, 89]
 
 # -----------------
 # ---- DENSITY ----
 # -----------------
 print("Processing density test results")
 fig, ax = plt.subplots()
-df_dens[df_dens["alt"] < 99000].plot(x="alt", y="diff", title="density", xlabel="altitude [m]", ylabel=r"$\frac{interp. atmo}{expon. atmo} - 1$", legend=None, ax=ax)
+df_dens[df_dens["alt"] < 99000].plot(x="alt", y="diff", title="density", xlabel="altitude [m]", ylabel=r"$\frac{interp. atmo.}{expon. atmo.} - 1$", legend=None, ax=ax)
 ax.grid(ls="dashed", c="0.85")
 fig.savefig("plots/atmo_tests/density.png", dpi=dpi_val)
 
@@ -117,13 +117,13 @@ for ang in angles:
     # plot tracks with negative diff
     df_gram[(df_gram["ang"] == ang) & (df_gram["diff"] < 0) & (df_gram["absdiff"] > 1e-11)].plot.scatter(x="len",y="absdiff",
         title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]",
-        ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="red", alpha=0.3, label="negative diff tracks")
+        ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c="red", alpha=0.3, label="negative diff tracks")
 
     # plot tracks with positive diff
     df_gram[(df_gram["ang"] == ang) & (df_gram["diff"] > 0) & (df_gram["absdiff"] > 1e-11)].plot.scatter(x="len",y="diff",
         title="integrated grammage, track angle " + str(ang) + "°", xlabel="track length [m]",
-        ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="positive diff tracks")
-        
+        ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="positive diff tracks")
+
     # grid
     ax.grid(ls="dashed", c="0.85")
     # save fig
@@ -142,7 +142,7 @@ i=0
 for ang in angles:
     # plot tracks
     df_gram[(df_gram["ang"] == ang) & (df_gram["absdiff"] > 1e-11) & (df_gram["diff"] > 0)].plot.scatter(x="len",y="diff", title="integrated grammage - positive diff tracks",
-     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
     i += 1
 
 # grid
@@ -163,7 +163,7 @@ i=0
 for ang in angles:
     # plot tracks
     df_gram[(df_gram["ang"] == ang) & (df_gram["absdiff"] > 1e-11) & (df_gram["diff"] < 0)].plot.scatter(x="len",y="absdiff", title="integrated grammage - negative diff tracks",
-     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
     i += 1
 
 # grid
@@ -184,7 +184,7 @@ i=0
 for ang in angles:
     # plot tracks
     df_gram[(df_gram["ang"] == ang) & (df_gram["absdiff"] > 1e-11)].plot.scatter(x="len",y="absdiff", title="integrated grammage",
-     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="track angle " + str(ang) + "°")
     i += 1
 
 # grid
@@ -214,12 +214,12 @@ for ang in angles:
     # plot tracks with negative diff
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["diff"] < 0)].plot.scatter(x="len",y="absdiff",
         title="track length from grammage, track angle " + str(ang) + "°", xlabel="track length [m]",
-        ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="red", alpha=0.3, label="negative diff tracks")
+        ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c="red", alpha=0.3, label="negative diff tracks")
 
     # plot upward tracks
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["diff"] > 0)].plot.scatter(x="len",y="diff",
         title="track length from grammage, track angle " + str(ang) + "°", xlabel="track length [m]",
-        ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="positive diff tracks")
+        ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c="blue", alpha=0.3, label="positive diff tracks")
 
     # grid
     ax.grid(ls="dashed", c="0.85")
@@ -239,7 +239,7 @@ i=0
 for ang in angles:
     # plot tracks
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["diff"] < 0)].plot.scatter(x="len",y="absdiff",title="track length from grammage - negative diff tracks",
-     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
     i += 1
 
 # grid
@@ -260,7 +260,7 @@ i=0
 for ang in angles:
     # plot tracks
     df_arclen[(df_arclen["ang"] == ang) & (df_arclen["diff"] > 0)].plot.scatter(x="len",y="diff",title="track length from grammage - positive diff tracks",
-     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
     i += 1
 
 # grid
@@ -281,7 +281,7 @@ i=0
 for ang in angles:
     # plot tracks
     df_arclen[(df_arclen["ang"] == ang)].plot.scatter(x="len",y="absdiff",title="track length from grammage",
-     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
+     xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo.}{expon. atmo.} - 1\right]$", ax=ax, c=colors[i], alpha=1, label="angle " + str(ang) + "°")
     i += 1
 
 # grid
@@ -291,23 +291,59 @@ fig.savefig("plots/atmo_tests/arclen.png", dpi=dpi_val)
 # clear fig
 plt.clf()
 
-# fig, ax = plt.subplots()
-# filt = df_arclen[ (df_arclen["ang"] == 89.9) | (df_arclen["ang"] == 89) | (df_arclen["ang"] == 80) | (df_arclen["ang"] == 0) ]
-# filt = filt[ (df_arclen["len"] > 1e3) & (df_arclen["diff"] > 1e-5) ]
-# print(filt)
 
-# filt[df_arclen["ang"] == 89.9].plot.scatter(x="len",y="diff", ax=ax, color=colors[0], label="angle 89.9°")
-# filt[df_arclen["ang"] == 89].plot.scatter(x="len",y="diff", ax=ax, color=colors[1], label="angle 89°")
-# filt[df_arclen["ang"] == 80].plot.scatter(x="len",y="diff", ax=ax, color=colors[2], label="angle 80°", title="track length outliers", xlabel="track length [m]", ylabel=r"abs$\left[\frac{interp. atmo}{expon. atmo} - 1\right]$")
+# -------------------
+# ---- OUTLIERS- ----
+# -------------------
 
-# # logscale
-# ax.set_xscale("log")
+# filter data for outliers
+ang_filt = df_arclen[ (df_arclen["ang"] == 89) | (df_arclen["ang"] == 80) | (df_arclen["ang"] == 40) ]
+xmin = 1e3
+xmax = 1e6
+filt = ang_filt[ (ang_filt["len"] > xmin) & (ang_filt["absdiff"] > 1e-5) ]
+print("Filtered arclength dataframe:", filt.count()["len"], " tracks")
+
+# make new plot
+fig, ax = plt.subplots()
+fig.set_figwidth(7)
+
+# plot outliers
+filt[filt["ang"] == 40].plot.scatter(x="len",y="alt0", ax=ax, color=colors[1], label="angle 40°")
+filt[filt["ang"] == 80].plot.scatter(x="len",y="alt0", ax=ax, color=colors[2], label="angle 80°")
+filt[filt["ang"] == 89].plot.scatter(x="len",y="alt0", ax=ax, color=colors[3], label="angle 89°", xlabel="track length [m]", ylabel="track startpoint altitude [m]", title="track length from grammage - outliers")
+
+# logscale and axis limits
+ax.set_xscale("log")
 # ax.set_yscale("log")
-# fig.savefig("plots/atmo_tests/arclen_outliers.png", dpi=dpi_val)
+ax.set_xlim([xmin, xmax])
 
-# fig, ax = plt.subplots()
-# ax.set_xscale("log")
-# filt[df_arclen["ang"] == 89.9].plot.scatter(x="len",y="alt0", ax=ax, color=colors[0], label="angle 89.9°")
-# filt[df_arclen["ang"] == 89].plot.scatter(x="len",y="alt0", ax=ax, color=colors[1], label="angle 89°")
-# filt[df_arclen["ang"] == 80].plot.scatter(x="len",y="alt0", ax=ax, color=colors[2], label="angle 80°", title="track length outliers", xlabel="track length [m]", ylabel="track startpoint altitude [m]")
-# fig.savefig("plots/atmo_tests/arclen_outliers2.png", dpi=dpi_val)
+# plot atmosphere layer boundaries
+atmo_edges = [0, 7e3, 11.4e3, 37e3, 100e3, 112.8e3]
+for edge in atmo_edges:
+    ax.plot([xmin, xmax], [edge, edge], linestyle="dotted", color="black", linewidth=1)
+
+fig.savefig("plots/atmo_tests/arclen_outliers.png", dpi=dpi_val)
+
+# filter data for outliers
+ang_filt = df_gram[ (df_gram["ang"] == 89) | (df_gram["ang"] == 80) | (df_gram["ang"] == 40) ]
+xmin = 1e3
+xmax = 1e6
+filt = ang_filt[ (ang_filt["len"] > xmin) & (ang_filt["absdiff"] > 1e-5) ]
+print("Filtered grammage dataframe:", filt.count()["len"], " tracks")
+
+fig, ax = plt.subplots()
+
+filt[filt["ang"] == 40].plot.scatter(x="len",y="alt0", ax=ax, color=colors[1], label="angle 40°")
+filt[filt["ang"] == 80].plot.scatter(x="len",y="alt0", ax=ax, color=colors[2], label="angle 80°")
+filt[filt["ang"] == 89].plot.scatter(x="len",y="alt0", ax=ax, color=colors[3], label="angle 89°", xlabel="track length [m]", ylabel="track startpoint altitude [m]", title="integrated grammage - outliers")
+
+# logscale
+ax.set_xscale("log")
+ax.set_xlim([xmin, xmax])
+fig.set_figwidth(7)
+# ax.set_yscale("log")
+
+for edge in atmo_edges:
+    ax.plot([xmin, xmax], [edge, edge], linestyle="dotted", color="black", linewidth=1)
+
+fig.savefig("plots/atmo_tests/gram_outliers.png", dpi=dpi_val)
