@@ -32,11 +32,22 @@ def energyloss():
     # Set x-axis ticks for subplots
     ax1.tick_params(axis='x', direction='in')
     ax2.tick_params(axis='x', direction='in', top=True)
-    ax2.axhline(1, c="black")
 
     # grid below points
     ax1.set_axisbelow(True)
     ax2.set_axisbelow(True)
+
+    # draw lines for atmosphere layer boundaries
+    if(mark_altitudes):
+        for alt, thick in atmo_layers.items():
+            # ax1.plot([thick, thick], [ymin, ymax*1.05], color=alt_color, ls="dashed", lw=1)
+            ax2.plot([thick, thick], [ratio_range[0], ratio_range[1]], color=(alt_color, alt_alpha), ls="dashed", lw=1)
+            text = str("{:.1f}".format(alt/1000))
+            ax2.text(thick-10, ratio_range[0] - (ratio_range[1]-ratio_range[0])*0.29, text, color=alt_color)
+        ax2.text(0.32, -0.44, "$H$ [km]", transform=ax2.transAxes, color=alt_color)
+
+    # horizontal line at 1
+    ax2.axhline(1, c="black")
 
     # Dictionary for dataframes
     res = {}
@@ -89,12 +100,21 @@ def energyloss():
                 ax2.fill_between(sel["X"], sel["ratio_errL"], sel["ratio_errH"],
                 color=(color, alpha_band), edgecolor=(color, alpha_edge))
 
-    ax1.set_title("Median energy loss", loc="left")
+    # get current main plot y-axis range
+    ymin, ymax = ax1.get_ylim()
 
-    # Add grid
+    # draw lines for atmosphere layer boundaries
+    if (mark_altitudes):
+        for alt, thick in atmo_layers.items():
+            ax1.plot([thick, thick], [ymin, ymax*1.05], color=(alt_color, alt_alpha), ls="dashed", lw=1)
+
+    # grid and axes
     ax1.grid(ls="dashed", c="0.85")
     ax2.grid(ls="dashed", c="0.85")
     ax2.set_ylim(ratio_range)
+    ax1.set_ylim(ymin, ymax)
+    ax1.set_title("Median energy loss", loc="left")
+    ax2.xaxis.set_label_coords(0.55, -0.32)
 
     # Legend fontsize and position
     ax1.legend(fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
@@ -222,6 +242,17 @@ def profile():
         # Set x-axis ticks for subplots
         ax1.tick_params(axis='x', direction='in')
         ax2.tick_params(axis='x', direction='in', top=True)
+        
+        # draw lines for atmosphere layer boundaries
+        if(mark_altitudes):
+            for alt, thick in atmo_layers.items():
+                # ax1.plot([thick, thick], [ymin, ymax*1.05], color=alt_color, ls="dashed", lw=1)
+                ax2.plot([thick, thick], [ratio_range[0], ratio_range[1]], color=(alt_color, alt_alpha), ls="dashed", lw=1)
+                text = str("{:.1f}".format(alt/1000))
+                ax2.text(thick-10, ratio_range[0] - (ratio_range[1]-ratio_range[0])*0.29, text, color=alt_color)
+            ax2.text(0.32, -0.44, "$H$ [km]", transform=ax2.transAxes, color=alt_color)
+
+        # horizontal line at 1
         ax2.axhline(1, c="black")
 
         # grid below points
@@ -261,13 +292,21 @@ def profile():
                     ax2.fill_between(sel["X"], sel[cols[n] + "_ratio_errL"], sel[cols[n] + "_ratio_errH"],
                     color=(color, alpha_band), edgecolor=(color, alpha_edge))
 
-        # plot title
-        ax1.set_title("Median longitudinal\nprofile - " + title[n], loc="left")
+        # get current main plot y-axis range
+        ymin, ymax = ax1.get_ylim()
 
-        # Add grid
+        # draw lines for atmosphere layer boundaries
+        if(mark_altitudes):
+            for alt, thick in atmo_layers.items():
+                ax1.plot([thick, thick], [ymin, ymax*1.05], color=(alt_color, alt_alpha), ls="dashed", lw=1)
+
+        # grid and axes
         ax1.grid(ls="dashed", c="0.85")
         ax2.grid(ls="dashed", c="0.85")
+        ax1.set_ylim(ymin, ymax)
         ax2.set_ylim(ratio_range)
+        ax1.set_title("Median longitudinal\nprofile - " + title[n], loc="left")
+        ax2.xaxis.set_label_coords(0.55, -0.32)
 
         # Legend fontsize
         ax1.legend(fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
@@ -685,6 +724,9 @@ if len(sys.argv) == 1:
     print_usage()
     exit(1)
 
+# altitudes of atmosphere layer boundaries
+atmo_layers = {0: 0, 7e3: 0, 11.4e3: 0, 37e3: 0}
+
 # Limit max X in plots
 X_limit = 1030
 
@@ -720,6 +762,11 @@ output_types = {"energyloss": "dEdX",
 
 # Colors in plots
 colors=("firebrick", "mediumblue", "green", "goldenrod")
+alt_color = "forestgreen"
+alt_alpha = 0.6
+
+# mark altitudes in addition to grammage
+mark_altitudes = True
 
 # ---- END OF INPUT ----
 
@@ -736,6 +783,11 @@ print("Passed ", len(sys.argv)-2, " argument(s), verifying run validity:", sep="
 sim_dir = []
 for sim_name in sys.argv[2:]:
     print("  -", sim_name, end=": ")
+
+    # Check zenith angle
+    if "_z0_" not in sim_name:
+        # print("Not vertical shower, disabling altitude marks")
+        mark_altitudes = False
 
     # Check if merged directory exists
     path = "output/" + sim_name + "/merged/"
@@ -774,6 +826,12 @@ for path in sim_dir:
     # Runtimes
     data[path]["runtime"] = pd.read_csv(path + "/runtimes.csv", index_col=False)
 
+# look up altitude to grammage mapping
+atmo_table = pd.read_csv("data/USStdBK_full.csv")
+for a in atmo_layers:
+    thick = atmo_table[atmo_table["alt"] == a]["thick"].values[0]
+    atmo_layers[a] = thick
+
 print("Loaded data")
 
 # Analysis
@@ -781,7 +839,7 @@ energyloss()
 # interactions()
 # production()
 profile()
-observation()
-runtimes()
+# observation()
+# runtimes()
 
 print("All done")
