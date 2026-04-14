@@ -766,7 +766,7 @@ alt_color = "forestgreen"
 alt_alpha = 0.6
 
 # mark altitudes in addition to grammage
-mark_altitudes = True
+mark_altitudes = False
 
 # ---- END OF INPUT ----
 
@@ -827,10 +827,11 @@ for path in sim_dir:
     data[path]["runtime"] = pd.read_csv(path + "/runtimes.csv", index_col=False)
 
 # look up altitude to grammage mapping
-atmo_table = pd.read_csv("data/USStdBK_full.csv")
-for a in atmo_layers:
-    thick = atmo_table[atmo_table["alt"] == a]["thick"].values[0]
-    atmo_layers[a] = thick
+if (mark_altitudes):
+    atmo_table = pd.read_csv("data/USStdBK_full.csv")
+    for a in atmo_layers:
+        thick = atmo_table[atmo_table["alt"] == a]["thick"].values[0]
+        atmo_layers[a] = thick
 
 print("Loaded data")
 

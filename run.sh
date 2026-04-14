@@ -58,7 +58,7 @@ NRUN=$7
 
 # Number of available threads
 # THREADS=$(lscpu | grep "^CPU(s):" | grep -oE "[0-9]*")
-THREADS=2
+THREADS=8
 
 BUILD="release"
 

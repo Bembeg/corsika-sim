@@ -94,7 +94,7 @@ colors = ["red", "orange", "green", "blue", "violet", "black"]
 
 angles = [0, 40, 80, 89]
 
-atmo_edges = [0, 7e3, 11.4e3, 37e3, 100e3, 112.8e3]
+atmo_edges = [0, 7e3, 11.4e3, 37e3, 100e3]
 
 # -----------------
 # ---- DENSITY ----
