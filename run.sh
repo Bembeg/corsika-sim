@@ -109,6 +109,7 @@ for N in $(seq 0 1 $((NRUN-1))); do
         -s $((N+1)) \
         --injection-height $INJ \
         -z $ZEN \
+        --atmosphere /corsika/corsika/modules/data/CHERENKOV/atmosphere/atmprof_USStdBK.dat \
         &> ${SIM_OUTPUT}_${N}.log &
 
         # --max-deflection-angle 0.02 \

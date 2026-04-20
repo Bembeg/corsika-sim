@@ -37,9 +37,9 @@ with open(path_dens, "w") as csv_dens:
                     # get altitude
                     alt = line_split[5].strip(",")
                     # get density from exponential atmo
-                    densExp = line_split[7].strip(",")
+                    densInt = line_split[7].strip(",")
                     # get density from interpolated atmo
-                    densInt = line_split[9].strip(",")
+                    densExp = line_split[9].strip(",")
                     # test diff
                     diff = line_split[-1]
                     # write to file
@@ -105,7 +105,6 @@ edge_around = 5
 i = 0
 for edge in atmo_edges:
     fig, ax = plt.subplots(constrained_layout=True)
-    # fig.set_figwidth(6)
     # get axis range from dataframe
     filt = df_dens[ (df_dens["alt"] > edge-edge_around) & (df_dens["alt"] < edge+edge_around) ]
     mins = filt.min()

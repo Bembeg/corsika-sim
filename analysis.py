@@ -741,7 +741,7 @@ alpha_edge = 0.40
 linestyles=["solid", (0, (1, 1)), "none"]
 
 # plot error bands in ratio plots
-plot_ratio_errors = True
+plot_ratio_errors = False
 
 # cap size for errorbars
 err_capsize = 2
@@ -761,7 +761,7 @@ output_types = {"energyloss": "dEdX",
                 "profile": "profile"}
 
 # Colors in plots
-colors=("firebrick", "mediumblue", "green", "goldenrod")
+colors=("black", "firebrick", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
 alt_color = "forestgreen"
 alt_alpha = 0.6
 
@@ -841,6 +841,6 @@ energyloss()
 # production()
 profile()
 # observation()
-# runtimes()
+runtimes()
 
 print("All done")
