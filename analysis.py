@@ -27,8 +27,11 @@ def energyloss():
 
     # Create figure
     fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
-    # Set vertical gap between subplots
-    plt.subplots_adjust(hspace=0.05)
+
+    # Set vertical gap between subplots and margins
+    top = 0.96 - len(sim_dir) * 0.036
+    plt.subplots_adjust(hspace=0.05, top=top)
+
     # Set x-axis ticks for subplots
     ax1.tick_params(axis='x', direction='in')
     ax2.tick_params(axis='x', direction='in', top=True)
@@ -157,9 +160,10 @@ def production():
     # Iterate over plots
     for n in range(len(cols)):
         # Create figure
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
-        # Set vertical gap between subplots
-        plt.subplots_adjust(hspace=0.05)
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])    
+        # Set vertical gap between subplots and margins
+        top = 0.96 - len(sim_dir) * 0.036
+        plt.subplots_adjust(hspace=0.05, top=top)
         # Set x-axis ticks for subplots
         ax1.tick_params(axis='x', direction='in')
         ax2.tick_params(axis='x', direction='in', top=True)
@@ -236,9 +240,10 @@ def profile():
     # Iterate over plots
     for n in range(len(cols)):
         # Create figure
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
-        # Set vertical gap between subplots
-        plt.subplots_adjust(hspace=0.05)
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])        
+        # Set vertical gap between subplots and margins
+        top = 0.96 - len(sim_dir) * 0.036
+        plt.subplots_adjust(hspace=0.05, top=top)
         # Set x-axis ticks for subplots
         ax1.tick_params(axis='x', direction='in')
         ax2.tick_params(axis='x', direction='in', top=True)
@@ -437,9 +442,10 @@ def observation():
     # Plotting of radius
     for n in range(len(cols)):
         # Create figure
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
-        # Set vertical gap between subplots
-        plt.subplots_adjust(hspace=0.05)
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])        
+        # Set vertical gap between subplots and margins
+        top = 0.96 - len(sim_dir) * 0.036
+        plt.subplots_adjust(hspace=0.05, top=top)
         # Set x-axis ticks for subplots
         ax1.tick_params(axis='x', direction='in')
         ax2.tick_params(axis='x', direction='in', top=True)
@@ -525,9 +531,10 @@ def observation():
     # Plotting of kinetic energy
     for n in range(len(cols)):
         # Create figure
-        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
-        # Set vertical gap between subplots
-        plt.subplots_adjust(hspace=0.05)
+        fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])        
+        # Set vertical gap between subplots and margins
+        top = 0.96 - len(sim_dir) * 0.036
+        plt.subplots_adjust(hspace=0.05, top=top)
         # Set x-axis ticks for subplots
         ax1.tick_params(axis='x', direction='in')
         ax2.tick_params(axis='x', direction='in', top=True)
