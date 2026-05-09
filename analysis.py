@@ -114,7 +114,7 @@ def energyloss():
     # grid and axes
     ax1.grid(ls="dashed", c="0.85")
     ax2.grid(ls="dashed", c="0.85")
-    ax2.set_ylim(ratio_range)
+    ax2.set_ylim(ratio_range_large)
     ax1.set_ylim(ymin, ymax)
     ax1.set_title("Median energy loss", loc="left")
     ax2.xaxis.set_label_coords(0.55, -0.32)
@@ -126,7 +126,6 @@ def energyloss():
     plot_path = plot_dir + "eloss.png"
     fig.savefig(plot_path, dpi=dpi_val)
     print("  - generated plot '", plot_path + "'", sep="")
-
 
 def interactions():
     print("2) Running interactions analysis")
@@ -309,7 +308,7 @@ def profile():
         ax1.grid(ls="dashed", c="0.85")
         ax2.grid(ls="dashed", c="0.85")
         ax1.set_ylim(ymin, ymax)
-        ax2.set_ylim(ratio_range)
+        ax2.set_ylim(ratio_range_large)
         ax1.set_title("Median longitudinal\nprofile - " + title[n], loc="left")
         ax2.xaxis.set_label_coords(0.55, -0.32)
 
@@ -637,29 +636,42 @@ def runtimes():
     # Create figure
     fig, ax = plt.subplots()
 
+   # Set vertical gap between subplots and margins
+    top = 0.96 - len(sim_dir) * 0.036
+    plt.subplots_adjust(hspace=0.05, top=top)
+
     # Iterate over runs and generate plots
     for path in sim_dir:
+        # Parse run name
+        name = path.split("/")[1]
         # Get index of this run
         id = sim_dir.index(path)
         # Get color
         color = colors[id]
 
         # Plot
-        data[path]["runtime"].hist(column="rt_per_sh", ax=ax, bins=24, color=color, log=False, histtype="step")
+        data[path]["runtime"].hist(column="rt_per_sh", ax=ax, bins=24, color=color, log=False, histtype="step", label=name)
 
     # Add grid
     ax.grid(ls="dashed", c="0.85")
 
     # Set title and axis labels
-    plt.title("Runtime per shower")
+    plt.title(None)
     plt.xlabel("Runtime [s]")
-    plt.ylabel("$N$")
+    plt.ylabel("Showers")
 
     # Set legend
     legend = [name.split("/")[1] for name in sim_dir]
     if (len(legend) > 1):
-        legend[0] += " (ref)"
-    plt.legend(legend)
+      legend[0] += " (ref)"
+
+    # proxies for legend
+    proxies = []
+    for i in range(len(sim_dir)):
+        proxies.append(mlines.Line2D([], [], color=colors[i], linewidth=1, marker=None, label=legend[i]))
+
+    # Legend fontsize and position
+    ax.legend(handles=proxies, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
 
     # More y-axis range to make room for the legend
     ax.set_ylim(ax.get_ylim()[0], 1.2*ax.get_ylim()[1])
@@ -692,6 +704,9 @@ def runtimes():
         # Push y-position for gaussian mean annotations
         y_label += (ymax-ymin)*0.06
 
+    ax.set_title("Runtime per shower", loc="left")
+    # ax.xaxis.set_label_coords(0.55, -0.32)
+
     # Plot and save
     plot_path = plot_dir + "runtimes.png"
     fig.savefig(plot_path, dpi=dpi_val)
@@ -703,6 +718,8 @@ def runtimes():
 
     # Iterate over runs and generate plots
     for path in sim_dir:
+        # Parse run name
+        name = path.split("/")[1]
         # Get index of this run
         id = sim_dir.index(path)
         # Get color
@@ -710,7 +727,8 @@ def runtimes():
 
         # Plot
         if (path != ref):
-            data[path]["runtime"].hist(column="rt_diff", ax=ax, bins=16, color=color, log=False, histtype="step")
+            data[path]["runtime"].hist(column="rt_diff", ax=ax, bins=16, color=color,
+            log=False, histtype="step", label=name)
 
     # Add grid
     ax.grid(ls="dashed", c="0.85")
@@ -722,8 +740,8 @@ def runtimes():
 
     # Plot and save
     plot_path = plot_dir + "runtimes_seed.png"
-    fig.savefig(plot_path, dpi=dpi_val)
-    print("  - generated plot '", plot_path + "'", sep="")
+    # fig.savefig(plot_path, dpi=dpi_val)
+    # print("  - generated plot '", plot_path + "'", sep="")
 
 # Check if any arguments were passed
 if len(sys.argv) == 1:
@@ -748,14 +766,14 @@ alpha_edge = 0.40
 linestyles=["solid", (0, (1, 1)), "none"]
 
 # plot error bands in ratio plots
-plot_ratio_errors = False
+plot_ratio_errors = True
 
 # cap size for errorbars
 err_capsize = 2
 
 # ratio subplot y-axis range
 ratio_range = [0.85, 1.15]
-ratio_range_large = [0, 3]
+ratio_range_large = [0.5, 1.5]
 
 # histogram bins
 n_bins = 64

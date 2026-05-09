@@ -101,17 +101,17 @@ for N in $(seq 0 1 $((NRUN-1))); do
 
     # Run Corsika
     ${C8_EXEC} \
+        -s $((N+1)) \
         --nevent $NSHO \
         --pdg $PDG \
         -E $ENE \
         -f ${RUN_OUTPUT} \
         --disable-interaction-histograms \
-        -s $((N+1)) \
         --injection-height $INJ \
         -z $ZEN \
-        --atmosphere /corsika/corsika/modules/data/CHERENKOV/atmosphere/atmprof_USStdBK.dat \
         &> ${SIM_OUTPUT}_${N}.log &
 
+        # --atmosphere /corsika/corsika/modules/data/CHERENKOV/atmosphere/atmprof_USStdBK2.dat \
         # --max-deflection-angle 0.02 \
 
     # Get PID of the new process
