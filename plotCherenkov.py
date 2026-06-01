@@ -28,6 +28,13 @@ def rotation_matrix_from_vectors(vec1, vec2):
     rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
     return rotation_matrix
 
+# global configs
+colors=("black", "firebrick", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
+n_bins = 32
+dpi_val = 300
+dashed_linestyle = (0, (1,1))
+
+# input paths
 pathData = "data/light.parquet"
 pathConf = "data/config.yaml"
 
@@ -38,100 +45,173 @@ data = pd.read_parquet(pathData, "pyarrow")
 with open(pathConf, "r") as fileConf:
     conf = yaml.safe_load(fileConf)
 
+print("\nPrinting input")
 print(conf)
 print(data)
 
-# plot observer collection
 
-
-
+# -------------------------
+# -- OBSERVER COLLECTION --
+# -------------------------
+print("\nPlotting observer collection")
 fig = plt.figure()
 ax = fig.add_subplot(projection='3d')
+# remove axis labels
+ax.set_xticklabels([])
+ax.set_yticklabels([])
+ax.set_zticklabels([])
 
-print("Plotting")
-
-
-colors=("black", "firebrick", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
-
-# ax.scatter(data["hitX"], data["hitY"], data["hitZ"], s=0.8, c=data["time"], cmap="viridis")
-
-fig = plt.figure()
-ax = fig.add_subplot(projection='3d')
-# observer info
-idx = 0
+observer_idx = 0
 for name in conf["observers"]:
     center = conf["observers"][name]["position"]
     pointing = conf["observers"][name]["pointing"]
     radius = conf["observers"][name]["radius"]
     print(f"Observer {name}: pos {center}, pointing {pointing}, radius {radius}")
-
-    # plot center points and pointing direction
-    scale = 0.3
-    ax.plot([center[0], center[0]+pointing[0]*scale], [center[1], center[1]+pointing[1]*scale], [center[2], center[2]+pointing[2]*scale],color=colors[idx],marker=".")
+    
+    pointing_scale = 0.3
+    observer_color = colors[observer_idx]
 
     # plot observer outline - draw circle in XY plane
     phi = np.linspace(0, 2*np.pi, 201)
     outl = [radius * np.cos(phi), radius * np.sin(phi), 0*phi]
 
-    # Calculate rotation matrix to align circle with the pointing direction
+    # calculate rotation matrix to align circle with the pointing direction
     rotation_matrix = rotation_matrix_from_vectors([0,0,1], pointing)
 
-    # Apply rotation
+    # rotate the circle
     outl_rot = np.dot(rotation_matrix, np.array(outl))
 
-    ax.plot(outl_rot[0] + center[0], outl_rot[1] + center[1], outl_rot[2] + center[2], color=colors[idx])
+    # draw observer outline projection to ground
+    ax.plot(outl_rot[0] + center[0], outl_rot[1] + center[1], 0, color=observer_color, linestyle=dashed_linestyle)
+    ax.plot([center[0], center[0]+pointing[0]*pointing_scale], [center[1], center[1]+pointing[1]*pointing_scale], [0, 0], color=observer_color, linestyle=dashed_linestyle, marker="o", markersize=3, markerfacecolor="none")
 
-    idx += 1
+    # draw observer outline
+    ax.plot(outl_rot[0] + center[0], outl_rot[1] + center[1], outl_rot[2] + center[2], color=observer_color)
+    ax.plot([center[0], center[0]+pointing[0]*pointing_scale], [center[1], center[1]+pointing[1]*pointing_scale], [center[2], center[2]+pointing[2]*pointing_scale], color=observer_color, marker="o", markersize=3)
 
-fig.savefig("plots/cherenkov/obsColl.png", dpi=300)
+    observer_idx += 1
 
-ax.set_xlim(-1.5, 1.5)
-ax.set_ylim(-1.5, 1.5)
-ax.set_zlim(0, 3)
-ax.set_axis_off()
+fig.savefig("plots/cherenkov/obs_coll.png", dpi=dpi_val)
+
+# -----------------
+# -- GLOBAL HITS --
+# -----------------
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
+# remove axis labels
 ax.set_xticklabels([])
 ax.set_yticklabels([])
 ax.set_zticklabels([])
 
-# print("Making plots for a gif")
-# ax.elev = 10
-# idx = 0
-# plots = []
-# for azim in range(0, 360, 5):
-#     ax.azim = azim
-#     plot_name = "plots/cherenkov/fig_" + "{:02d}".format(idx) + ".png"
-#     fig.savefig(plot_name, dpi=300)
-#     plots.append(plot_name)
-#     idx += 1
+# plot hit positions
+ax.scatter(data["hitX"], data["hitY"], data["hitZ"], s=0.8, c=data["time"], cmap="viridis")
+fig.savefig("plots/cherenkov/global_hits3D.png", dpi=dpi_val)
+plt.close()
 
-# print("Making gif")
-# images = []
-# for image in plots:
-#     im = Image.open(image)
-#     images.append(im)
+# global histogram of hit timestamps
+fig, ax = plt.subplots()
+counts, bins = np.histogram(data["time"], bins = n_bins)
+ax.stairs(counts, bins)
+ax.set_title("Global photon arrival time")
+ax.set_xlabel("t [ns]")
+ax.set_ylabel("photons")
+fig.savefig("plots/cherenkov/global_time.png", dpi=dpi_val)
+plt.close()
 
-# # save as a gif   
-# images[0].save('plots/cherenkov/rot.gif',
-#                save_all=True, append_images=images[1:], optimize=False, duration=100, loop=0)
+# global histogram of photon wavelengths
+fig, ax = plt.subplots()
+counts, bins = np.histogram(data["wavelength"], bins = n_bins)
+plt.stairs(counts, bins)
+ax.set_title("Global photon wavelength")
+ax.set_xlabel("wavelength [nm]")
+ax.set_ylabel("photons")
+fig.savefig("plots/cherenkov/global_wavelength.png", dpi=dpi_val)
+plt.close()
 
-# # delete individual gif components
-# for path in plots:
-#     os.remove(path)
+# global histogram of hit positions in all coordinates
+# X position
+fig, ax = plt.subplots()
+counts, bins = np.histogram(data["hitX"], bins = n_bins)
+plt.stairs(counts, bins)
+ax.set_title("Global photon X position")
+ax.set_xlabel("hit X [m]")
+ax.set_ylabel("photons")
+fig.savefig("plots/cherenkov/global_hitX.png", dpi=dpi_val)
+plt.close()
+# Y position
+fig, ax = plt.subplots()
+counts, bins = np.histogram(data["hitY"], bins = n_bins)
+plt.stairs(counts, bins)
+ax.set_title("Global photon Y position")
+ax.set_xlabel("hit Y [m]")
+ax.set_ylabel("photons")
+fig.savefig("plots/cherenkov/global_hitY.png", dpi=dpi_val)
+plt.close()
+# Z position
+fig, ax = plt.subplots()
+counts, bins = np.histogram(data["hitZ"], bins = n_bins)
+plt.stairs(counts, bins)
+ax.set_title("Global photon Z position")
+ax.set_xlabel("hit Z [m]")
+ax.set_ylabel("photons")
+fig.savefig("plots/cherenkov/global_hitZ.png", dpi=dpi_val)
+plt.close()
 
-print("Plotting views")
-ax.elev = 45
-ax.azim = 60
-fig.savefig("plots/cherenkov/obsColl_view.png", dpi=300)
+# -------------------
+# -- OBSERVER HITS --
+# -------------------
+observer_idx = 0
+for observer_name in conf["observers"]:
+    center = conf["observers"][name]["position"]
+    pointing = conf["observers"][name]["pointing"]
+    radius = conf["observers"][name]["radius"]
+    
+    filtered_data = data[data["obsId"] == observer_idx]
 
-ax.elev = 90
-ax.azim = -90
-fig.savefig("plots/cherenkov/obsColl_z.png", dpi=300)
+    # time
+    fig, ax = plt.subplots()
+    counts, bins = np.histogram(filtered_data["time"], bins = n_bins)
+    ax.stairs(counts, bins)
+    ax.set_title(f"Photon arrival time in observer {observer_name}")
+    ax.set_xlabel("t [ns]")
+    ax.set_ylabel("photons")
+    fig.savefig(f"plots/cherenkov/{observer_name}_time.png", dpi=dpi_val)
+    plt.close()
+    
+    # wavelength
+    fig, ax = plt.subplots()
+    counts, bins = np.histogram(filtered_data["wavelength"], bins = n_bins)
+    ax.stairs(counts, bins)
+    ax.set_title(f"Photon wavelength in observer {observer_name}")
+    ax.set_xlabel("wavelength [nm]")
+    ax.set_ylabel("photons")
+    fig.savefig(f"plots/cherenkov/{observer_name}_wavelength.png", dpi=dpi_val)
+    plt.close()
 
-ax.elev = 5
-ax.azim = 180
-fig.savefig("plots/cherenkov/obsColl_x.png", dpi=300)
+    # X position
+    fig, ax = plt.subplots()
+    counts, bins = np.histogram(filtered_data["hitX"], bins = n_bins)
+    plt.stairs(counts, bins)
+    ax.set_title(f"Photon X-position in observer {observer_name}")
+    ax.set_xlabel("hit X [m]")
+    ax.set_ylabel("photons")
+    fig.savefig(f"plots/cherenkov/{observer_name}_hitX.png", dpi=dpi_val)
+    plt.close()
+    # Y position
+    fig, ax = plt.subplots()
+    counts, bins = np.histogram(filtered_data["hitY"], bins = n_bins)
+    plt.stairs(counts, bins)
+    ax.set_title(f"Photon Y-position in observer {observer_name}")
+    ax.set_ylabel("photons")
+    fig.savefig(f"plots/cherenkov/{observer_name}_hitY.png", dpi=dpi_val)
+    plt.close()
+    # Z position
+    fig, ax = plt.subplots()
+    counts, bins = np.histogram(filtered_data["hitZ"], bins = n_bins)
+    plt.stairs(counts, bins)
+    ax.set_title(f"Photon Z-position in observer {observer_name}")
+    ax.set_ylabel("photons")
+    fig.savefig(f"plots/cherenkov/{observer_name}_hitZ.png", dpi=dpi_val)
+    plt.close()
 
-ax.elev = 5
-ax.azim = -90
-fig.savefig("plots/cherenkov/obsColl_y.png", dpi=300)
-
+    observer_idx += 1
