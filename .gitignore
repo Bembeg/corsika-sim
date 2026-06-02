@@ -5,6 +5,8 @@ test*
 fort*
 nohup*
 *.tar*
+*.yaml
+*.parquet
 .vscode
 .env
 db_container.sh
