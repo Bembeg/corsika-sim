@@ -31,6 +31,7 @@ def rotation_matrix_from_vectors(vec1, vec2):
 # global configs
 colors=("black", "firebrick", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
 n_bins = 32
+n_bins_fine = 48
 dpi_val = 300
 dashed_linestyle = (0, (1,1))
 
@@ -235,11 +236,28 @@ for observer_name in conf["observers"]:
     # draw observer outline
     theta = np.linspace(0 , 2*np.pi, 200)
     outl = [radius * np.cos(theta), radius * np.sin(theta)]
-    ax.plot(outl[0], outl[1], color="red")
+    ax.plot(outl[0], outl[1], color="black")
 
+    ax.set_xlim(-radius*1.1, radius*1.1)
+    ax.set_ylim(-radius*1.1, radius*1.1)
     ax.set_title(f"Hits in observer {observer_name} (observer local coordinate system)")
     ax.set_xlabel("$X_{loc}$ [m]")
     ax.set_ylabel("$Y_{loc}$ [m]")
     fig.savefig(f"plots/cherenkov/{observer_name}_hitProj.png", dpi=dpi_val)
+    plt.close()
+
+    # hit position 2D histogram
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.set_aspect("equal")
+    ax.plot(outl[0], outl[1], color="black")
+    ax.hist2d(trf_hits[0], trf_hits[1], weights = filtered_data["weight"], cmap = "gist_heat_r", bins = n_bins_fine)
+    
+    ax.set_xlim(-radius*1.1, radius*1.1)
+    ax.set_ylim(-radius*1.1, radius*1.1)
+    ax.set_title(f"Hits in observer {observer_name} (observer local coordinate system)")
+    ax.set_xlabel("$X_{loc}$ [m]")
+    ax.set_ylabel("$Y_{loc}$ [m]")
+    fig.savefig(f"plots/cherenkov/{observer_name}_hit2D.png", dpi=dpi_val)
+    plt.close()
 
     observer_idx += 1
