@@ -1,0 +1,72 @@
+
+* [ RUN PARAMETERS ]
+RUNNR 7 
+USER root 
+HOST d7cd2b3e930f 
+EVTNR 1 
+NSHOW 10  # number of showers
+PRMPAR 1  # primary particle (1=gamma)
+ESLOPE -2.0  # energy spectrum slope
+ERANGE 100.0 100.0   # energy range in GeV
+THETAP 0.0 0.0  # zenith angle range in degrees
+PHIP 0.0 0.0  # azimuth angle range in degrees
+VIEWCONE 0.0 0.0  # viewcone angle range in degrees
+CSCAT 1 0.0 0.0  # core scatter range (here fixed to 1x at (0,0))
+
+* [ SITE PARAMETERS ]
+OBSLEV 214700.0   # observation level in cm (here 2147 m)
+ATMOSPHERE 99 Y 
+IACT ATMOFILE /workdir/external/atmprof_ecmwf_south_winter_fixed.dat 
+MAGNET 20.552 -9.367 
+ARRANG -4.533 
+
+* [ SEEDS ]
+SEED 534 0 0
+SEED 220 0 0
+SEED 1104 0 0
+SEED 382 0 0
+
+* [ TELESCOPES ]
+TELESCOPE	 0.0	 0.0	 3400.000	 1250.000 cm	 # LSTS-01
+
+* [ INTERACTION FLAGS ]
+FIXHEI 0.00 0 
+FIXCHI 0.0 
+ECUTS 0.3 0.1 0.02 0.02 
+MUADDI F 
+MUMULT T 
+LONGI T 20.0 F F 
+MAXPRT 10 
+ECTMAP 1.e6 
+EPOPAR fname pathnx /workdir/external/corsika7-interaction-tables/interaction-tables/ 
+EPOPAR fname inics /workdir/external/corsika7-interaction-tables/interaction-tables/epos.inics 
+EPOPAR fname iniev /workdir/external/corsika7-interaction-tables/interaction-tables/epos.iniev 
+EPOPAR fname inirj /workdir/external/corsika7-interaction-tables/interaction-tables/epos.inirj 
+EPOPAR fname initl /workdir/external/corsika7-interaction-tables/interaction-tables/epos.initl 
+EPOPAR fname hpf /workdir/external/corsika7-interaction-tables/interaction-tables/urqmd34/tables.dat 
+EPOPAR fname check none 
+EPOPAR fname histo none 
+EPOPAR fname data none 
+EPOPAR fname copy none 
+DATDIR /workdir/external/corsika7-interaction-tables/interaction-tables
+
+* [ CHERENKOV EMISSION PARAMETERS ]
+CERSIZ 5.0  # Cherenkov photon bunch size
+CERFIL 0 
+CWAVLG 240.0 1000.0  # wavelength range in nm
+
+* [ DEBUGGING OUTPUT PARAMETERS ]
+DEBUG F 6 F 1000000 
+DATBAS F 
+DIRECT ./ 
+PAROUT F F 
+
+* [ OUTPUT FILE ]
+TELFIL gamma_run000007_test.corsika
+
+* [ IACT TUNING PARAMETERS ]
+IACT SPLIT_AUTO 15000000 
+IACT IO_BUFFER 1000MB 
+IACT MAX_BUNCHES 1000000 
+
+EXIT
