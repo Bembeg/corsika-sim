@@ -50,7 +50,7 @@ BUNCHING=${10}
 CURRENT_DIR=$(pwd)
 
 # output directory for this run
-OUT_DIR=$(realpath "output-c7/${OUT_NAME}")
+OUT_DIR=$(realpath "output/${OUT_NAME}")
 mkdir -p ${OUT_DIR}
 
 # print config
