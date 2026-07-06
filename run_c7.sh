@@ -54,7 +54,7 @@ OUT_DIR=$(realpath "output/${OUT_NAME}")
 mkdir -p ${OUT_DIR}
 
 # print config
-echo "CORSIKA7 simulation config:"
+echo -e "\nCORSIKA7 simulation config:"
 echo "  name             : ${OUT_NAME}"
 echo "  showers          : ${N_SHW}"
 echo "  primary          : ${PRIM}"
@@ -65,7 +65,6 @@ echo "  obs. level [cm]  : ${OBS_LEVEL}"
 echo "  cher. range [nm] : ${CHER_WL_MIN} - ${CHER_WL_MAX}"
 echo "  bunching         : ${BUNCHING}"
 echo "  output directory : ${OUT_DIR}"
-echo
 
 RUN_LOG="${OUT_DIR}/run.log"
 RUN_OUTPUT="${OUT_DIR}/output.corsika"
