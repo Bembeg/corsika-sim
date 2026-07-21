@@ -7,16 +7,18 @@ from matplotlib import pyplot as plt
 import eventio
 
 
-debug = True
+debug = False
 
 output_path = sys.argv[1]
 
 input_paths = []
 sim_names = []
 
-n_bins = 128
+input_name = "output.corsika"
 
-# Colors in plots
+n_bins = 64
+
+# colors in plots
 colors=("black", "firebrick", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
 alt_color = "forestgreen"
 alt_alpha = 0.6
@@ -31,12 +33,12 @@ alpha_edge = 0.40
 # linestyles
 linestyles=["solid", (0, (1, 1)), "none"]
 
-print("inputs:")
+print("Inputs:")
 for i in range(2, len(sys.argv)):
-    print(f"   '{sys.argv[i]}' ... ", end="")
+    print(f"   '{sys.argv[i] + "/" + input_name}' ... ", end="")
 
     # check if input file exists
-    if os.path.exists(sys.argv[i]):
+    if os.path.exists(sys.argv[i] + "/" + input_name):
         print("ok")
     else:
         print("error")
@@ -45,7 +47,7 @@ for i in range(2, len(sys.argv)):
     input_paths.append(sys.argv[i])
 
     # parse the simulation name - name of the last directory
-    sim_name = sys.argv[i].split("/")[-2]
+    sim_name = sys.argv[i].split("/")[-1]
     sim_names.append(sim_name)
 
 plot_path = "plots/c7/" + output_path + "/"
@@ -62,7 +64,7 @@ bounds = { "first_int": [],
 
 # go over input files and collect min and max values
 for sim in range(len(input_paths)):
-    with eventio.IACTFile(input_paths[sim]) as f:
+    with eventio.IACTFile(input_paths[sim] + "/" + input_name) as f:
         for event in f:
             bounds["first_int"].append((event.header["starting_height"] + event.header["first_interaction_height"]) / 1e5)
 
@@ -78,17 +80,17 @@ for sim in range(len(input_paths)):
                 bounds["photons"].append(sum(event.photon_bunches[telescope]["photons"]))
 
 # determine absolute min and max values
-bound_zem_min = min(bounds["zem"]["min"])
-bound_zem_max = max(bounds["zem"]["max"])
-bound_time_min = min(bounds["time"]["min"])
-bound_time_max = max(bounds["time"]["max"])
+bound_zem_min = np.quantile(bounds["zem"]["min"], 0)
+bound_zem_max = np.quantile(bounds["zem"]["max"], 0.95)
+bound_time_min = np.quantile(bounds["time"]["min"], 0)
+bound_time_max = np.quantile(bounds["time"]["max"], 0.95)
 bound_first_int_min = min(bounds["first_int"])
 bound_first_int_max = max(bounds["first_int"])
-bound_photons_min = min(bounds["photons"])
-bound_photons_max = max(bounds["photons"])
+bound_photons_min = np.quantile(bounds["photons"], 0)
+bound_photons_max = np.quantile(bounds["photons"], 0.97)
 
 if(debug):
-    print("printing bounds:")
+    print("Printing bounds:")
     print(f"   first inter. alt. [km] : {bound_first_int_min} - {bound_first_int_max}")
     print(f"         photons / shower : {bound_photons_min} - {bound_photons_max}")
     print(f"      emission_height [m] : {bound_zem_min} - {bound_zem_max}")
@@ -100,7 +102,7 @@ bins = {}
 photons = {}
 
 for sim in range(len(input_paths)):
-    print(f"\nreading file '{input_paths[sim]}'")
+    print(f"Reading file '{input_paths[sim] + "/" + input_name}'")
 
     hists[sim] = {}
     bins[sim] = {}
@@ -109,7 +111,7 @@ for sim in range(len(input_paths)):
     bins[sim]["first_int"] = np.linspace(bound_first_int_min, bound_first_int_max, n_bins)
     hists[sim]["first_int"] = np.zeros(len(bins[sim]["first_int"])-1)
 
-    with eventio.IACTFile(input_paths[sim]) as f:
+    with eventio.IACTFile(input_paths[sim] + "/" + input_name) as f:
         # get input card object
         input_card = f.input_card.decode("utf-8").split("\n")
         # selected parameters 
@@ -130,7 +132,7 @@ for sim in range(len(input_paths)):
         
         # print selected parameters from the input card    
         if(debug):
-            print(f"\ninput card (selected params):")
+            print(f"input card (selected params):")
             for param in sel_params:
                 for line in input_card:
                     # find row with the requested parameter
@@ -154,12 +156,12 @@ for sim in range(len(input_paths)):
             bins[sim][telescope] = {}
             hists[sim][telescope] = {}
             photons[sim][telescope] = []
-            bins[sim][telescope]["x"] = np.linspace(-1.1 * radius, 1.1 * radius, n_bins)
+            bins[sim][telescope]["x"] = np.linspace(-3.0 * radius, 3.0 * radius, n_bins)
             hists[sim][telescope]["x"] = np.zeros(len(bins[sim][telescope]["x"])-1)
-            bins[sim][telescope]["y"] = np.linspace(-1.1 * radius, 1.1 * radius, n_bins)
+            bins[sim][telescope]["y"] = np.linspace(-3.0 * radius, 3.0 * radius, n_bins)
             hists[sim][telescope]["y"] = np.zeros(len(bins[sim][telescope]["y"])-1)
             hists[sim][telescope]["xy"] = np.zeros((len(bins[sim][telescope]["x"])-1, len(bins[sim][telescope]["y"])-1))
-            bins[sim][telescope]["r"] = np.linspace(0, 1.1 * radius, n_bins)
+            bins[sim][telescope]["r"] = np.linspace(0, 3.0 * radius, n_bins)
             hists[sim][telescope]["r"] = np.zeros(len(bins[sim][telescope]["r"])-1)
             bins[sim][telescope]["cx"] = np.linspace(0, 1, n_bins)
             hists[sim][telescope]["cx"] = np.zeros(len(bins[sim][telescope]["cx"])-1)
@@ -186,7 +188,7 @@ for sim in range(len(input_paths)):
 
             for telescope in range(n_telescopes):
                 # hit radius
-                radius = np.sqrt(event.photon_bunches[telescope]["x"] * event.photon_bunches[telescope]["x"] + event.photon_bunches[telescope]["y"]*event.photon_bunches[telescope]["y"]) / 1e2
+                radius = np.sqrt(event.photon_bunches[telescope]["x"] * event.photon_bunches[telescope]["x"] + event.photon_bunches[telescope]["y"] * event.photon_bunches[telescope]["y"]) / 1e2
                 
                 # number of photons in this event and this telescope
                 photons[sim][telescope].append(sum(event.photon_bunches[telescope]["photons"]))  
@@ -215,12 +217,46 @@ for sim in range(len(input_paths)):
                 hist, _ = np.histogram(sum(event.photon_bunches[telescope]["photons"]), bins=bins[sim][telescope]["photons"])
                 hists[sim][telescope]["photons"] += hist
 
+        # correct the radius histograms by surface areas
+        for telescope in range(n_telescopes):
+            for bin in range(len(hists[sim][telescope]["r"])):
+                inner_rad = bins[sim][telescope]["r"][bin]
+                outer_rad = bins[sim][telescope]["r"][bin+1]
+                # print(f"inner_rad {inner_rad}, outer_rad {outer_rad}")
+                outer_surf = 2 * 3.1415926 * outer_rad * outer_rad
+                inner_surf = 2 * 3.1415926 * inner_rad * inner_rad
+                surf = outer_surf - inner_surf
+                # scale the histogram bin by the surface area
+                hists[sim][telescope]["r"][bin] = hists[sim][telescope]["r"][bin] / surf
+
         # print total number of bunches
         print(f"   total photons in telescopes:")
-
         for telescope in range(n_telescopes):
             print(f"      [{telescope}] : {sum(photons[sim][telescope])}")
-            print(f"      [{telescope}] : {sum(hists[sim][telescope]["photons"])}")
+
+        # CORSIKA7 would produce a run.log file
+        # CORSIKA8 would produce a runtimes.csv file
+        c7_log = input_paths[sim] + "/run.log"
+        c8_runtimes = input_paths[sim] + "/runtimes.csv"
+
+        if (os.path.exists(c7_log)):
+            # load and read log file
+            with open(c7_log, "r") as log_file:
+                for line in log_file:
+                    if "GENERATED EVENTS" in line:
+                        line_split = line.split()
+                        n_events = line_split[-1]
+
+                    if "CORSIKA IACT" in line:
+                        line_split = line.split()
+                        runtime_total = line_split[line_split.index("after") + 1]
+
+        elif (os.path.exists(c8_runtimes)):
+            n_events = 1
+            runtime_total = 0
+           
+        runtime_shower = float(runtime_total) / int(n_events)
+        print(f"   runtime stats: total = {runtime_total} s, per shower = {runtime_shower} s ({n_events} showers)") 
 
 # build a legend
 legend = sim_names
@@ -232,7 +268,7 @@ proxies = []
 for i in range(len(sim_names)):
     proxies.append(mlines.Line2D([], [], color=colors[i], marker=".", label=legend[i]))
 
-print("making plots")
+print("Making plots")
 
 titles = ["First interaction altitude",
  "Hit X positions", "Hit Y positions",
@@ -259,7 +295,6 @@ names = ["first_int", "hitX", "hitY",
 log_scale = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 normalize = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
-# normalize = [0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 for plot in range(len(titles)):
     for telescope in range(n_telescopes):
@@ -267,6 +302,7 @@ for plot in range(len(titles)):
         if(debug):
             print(f"Plotting {cols[plot]}, telescope {telescope}")
 
+        # special treatment for first interaction histogram
         if(cols[plot] != "first_int"):
             plot_title = f"{titles[plot]}\n(telescope {telescope})"
             plot_name = f"tele{telescope}_{names[plot]}"
@@ -277,6 +313,8 @@ for plot in range(len(titles)):
         fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])
         # set vertical gap between subplots and margins
         top = 0.96 - len(sim_names) * 0.036
+        if (len(sim_names) == 1):
+            top -= 0.036
         plt.subplots_adjust(hspace=0.05, top=top)
         # Set x-axis ticks for subplots
         ax1.tick_params(axis='x', direction='in')
@@ -307,7 +345,7 @@ for plot in range(len(titles)):
 
         # plot and save
         for sim in range(len(sim_names)):
-            
+            # special treatment for first interaction histograms
             if(cols[plot] != "first_int"):
                 plot_bins = bins[sim][telescope][cols[plot]]
                 plot_hist = hists[sim][telescope][cols[plot]]
@@ -318,6 +356,7 @@ for plot in range(len(titles)):
                     for bin in range(len(plot_hist)):
                         plot_hist[bin] = plot_hist[bin] / hist_integral
 
+                # calculate ratio to reference
                 plot_hist_ratio = plot_hist / hists[0][telescope][cols[plot]]
 
             else:
@@ -330,10 +369,8 @@ for plot in range(len(titles)):
                     for bin in range(len(plot_hist)):
                         plot_hist[bin] = plot_hist[bin] / hist_integral
 
+                # calculate ratio to reference
                 plot_hist_ratio = plot_hist / hists[0][cols[plot]]
-
-
-
 
             # get bin centers
             bin_centers = []
@@ -342,11 +379,12 @@ for plot in range(len(titles)):
                 bin_center = (plot_bins[i] + plot_bins[i+1]) / 2
                 # append to list
                 bin_centers.append(bin_center)
-
-            
-
+     
+            # plot histograms
             ax1.plot(bin_centers, plot_hist, color=colors[sim], linestyle=linestyles[0], marker=".")
             ax2.plot(bin_centers, plot_hist_ratio, color=colors[sim], linestyle=linestyles[0], marker=".")
+        
+        # plot legend
         ax1.legend(handles=proxies, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
         fig.savefig(plot_path + plot_name + ".png", dpi=dpi_val)
         plt.close()
@@ -354,192 +392,17 @@ for plot in range(len(titles)):
         if (cols[plot] == "first_int"):
             break
 
-sys.exit(0)
-
-for telescope in range(n_telescopes):
-    # photon X position
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])        
-    # set vertical gap between subplots and margins
-    top = 0.96 - len(sim_names) * 0.036
-    plt.subplots_adjust(hspace=0.05, top=top)
-    # Set x-axis ticks for subplots
-    ax1.tick_params(axis='x', direction='in')
-    ax2.tick_params(axis='x', direction='in', top=True)
-    ax2.axhline(1, c="black")
-
-    # grid below points
-    ax1.set_axisbelow(True)
-    ax2.set_axisbelow(True)
-
-    # plot title and axis labels  
-    ax1.set_title(f"Hit X positions (telescope {telescope})", loc="left")
-    ax1.set_ylabel("Photons")
-    ax2.set_xlabel("$x$ [m]")
-    ax2.set_ylabel("ratio to ref.")
-
-    # add grid
-    ax1.grid(ls="dashed", c="0.85")
-    ax2.grid(ls="dashed", c="0.85")
-
-    # get bin centers
-    bin_centers = []
-    for i in range(len(bins[sim][telescope]["x"])-1):
-        # calculate bin center
-        bin_center = (bins[sim][telescope]["x"][i] + bins[sim][telescope]["x"][i+1]) / 2
-        # append to list
-        bin_centers.append(bin_center)
-
-    for sim in range(len(input_paths)):
-        ax1.plot(bin_centers, hists[sim][telescope]["x"], color=colors[sim], linestyle=linestyles[0], marker=".")
-    ax1.legend(handles=proxies, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
-    fig.savefig(plot_path + f"tele{telescope}_hitX.png", dpi=dpi_val)
-    plt.close()
-    
-    # photon Y position
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])        
-    # set vertical gap between subplots and margins
-    top = 0.96 - len(sim_names) * 0.036
-    plt.subplots_adjust(hspace=0.05, top=top)
-    # Set x-axis ticks for subplots
-    ax1.tick_params(axis='x', direction='in')
-    ax2.tick_params(axis='x', direction='in', top=True)
-    ax2.axhline(1, c="black")
-
-    # grid below points
-    ax1.set_axisbelow(True)
-    ax2.set_axisbelow(True)
-
-    # plot title and axis labels  
-    ax1.set_title(f"Hit Y positions (telescope {telescope})", loc="left")
-    ax1.set_ylabel("Photons")
-    ax2.set_xlabel("$y$ [m]")
-    ax2.set_ylabel("ratio to ref.")
-
-    # add grid
-    ax1.grid(ls="dashed", c="0.85")
-    ax2.grid(ls="dashed", c="0.85")
-
-    # get bin centers
-    bin_centers = []
-    for i in range(len(bins[sim][telescope]["y"])-1):
-        # calculate bin center
-        bin_center = (bins[sim][telescope]["y"][i] + bins[sim][telescope]["y"][i+1]) / 2
-        # append to list
-        bin_centers.append(bin_center)
-
-    for sim in range(len(input_paths)):
-        ax1.plot(bin_centers, hists[sim][telescope]["y"], color=colors[sim], linestyle=linestyles[0], marker=".")
-    ax1.legend(handles=proxies, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
-    fig.savefig(plot_path + f"tele{telescope}_hitY.png", dpi=dpi_val)
-    plt.close()
-    
-    # photon XY position - plots only for the first file even if more are provided
-    fig, ax = plt.subplots(figsize=(5, 5))
-    ax.set_aspect("equal")
-    X, Y = np.meshgrid(bins[0][telescope]["x"], bins[0][telescope]["y"])
-    mesh = ax.pcolormesh(X, Y, hists[0][telescope]["xy"], cmap = "gist_heat_r")
-    ax.set_title(f"Hit positions (telescope {telescope})")
-    ax.set_xlabel("x [m]")
-    ax.set_ylabel("y [m]")
-    fig.colorbar(mesh, ax=ax, label="Photon density", pad=0.02, shrink=0.835)
-    fig.savefig(plot_path + f"tele{telescope}_hitXY.png", dpi=dpi_val)
-    plt.close()
-
-    # correct the radius histograms by surface areas
-    for i in range(len(hists[sim][telescope]["r"])):
-        inner_rad = bins[sim][telescope]["r"][i]
-        outer_rad = bins[sim][telescope]["r"][i+1]
-        # print(f"inner_rad {inner_rad}, outer_rad {outer_rad}")
-        outer_surf = 2 * 3.1415926 * outer_rad * outer_rad
-        inner_surf = 2 * 3.1415926 * inner_rad * inner_rad
-        surf = outer_surf - inner_surf
-        # scale the histogram bin by the surface area
-        hists[sim][telescope]["r"][i] = hists[sim][telescope]["r"][i] / surf
-
-    # photon hit radius
-    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True, height_ratios=[0.7, 0.3])        
-    # set vertical gap between subplots and margins
-    top = 0.96 - len(sim_names) * 0.036
-    plt.subplots_adjust(hspace=0.05, top=top)
-    # Set x-axis ticks for subplots
-    ax1.tick_params(axis='x', direction='in')
-    ax2.tick_params(axis='x', direction='in', top=True)
-    ax2.axhline(1, c="black")
-
-    # grid below points
-    ax1.set_axisbelow(True)
-    ax2.set_axisbelow(True)
-
-    # plot title and axis labels  
-    ax1.set_title(f"Hit radius (telescope {telescope})", loc="left")
-    ax1.set_ylabel("Photons / m$^2$")
-    ax2.set_xlabel("$r$ [m]")
-    ax2.set_ylabel("ratio to ref.")
-
-    # add grid
-    ax1.grid(ls="dashed", c="0.85")
-    ax2.grid(ls="dashed", c="0.85")
-
-    # get bin centers
-    bin_centers = []
-    for i in range(len(bins[sim][telescope]["r"])-1):
-        # calculate bin center
-        bin_center = (bins[sim][telescope]["r"][i] + bins[sim][telescope]["r"][i+1]) / 2
-        # append to list
-        bin_centers.append(bin_center)
-
-    for sim in range(len(input_paths)):
-        ax1.plot(bin_centers, hists[sim][telescope]["r"], color=colors[sim], linestyle=linestyles[0], marker=".")
-    ax1.legend(handles=proxies, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
-    fig.savefig(plot_path + f"tele{telescope}_hitR.png", dpi=dpi_val)
-    plt.close()
-
-    # photon direction cosine with X
-    fig, ax = plt.subplots()
-    for sim in range(len(input_paths)):
-        ax.stairs(hists[sim][telescope]["cx"], bins[sim][telescope]["cx"])
-    ax.set_title(f"Hit direction X-cosine (telescope {telescope})")
-    ax.set_xlabel("Hit direction X-cosine")
-    ax.set_ylabel("Photons")
-    fig.savefig(plot_path + f"tele{telescope}_hitCX.png", dpi=dpi_val)
-    plt.close()
-
-    # photon direction cosine with Y
-    fig, ax = plt.subplots()
-    for sim in range(len(input_paths)):
-        ax.stairs(hists[sim][telescope]["cy"], bins[sim][telescope]["cy"])
-    ax.set_title(f"Hit direction Y-cosine (telescope {telescope})")
-    ax.set_xlabel("Hit direction Y-cosine")
-    ax.set_ylabel("Photons")
-    fig.savefig(plot_path + f"tele{telescope}_hitCY.png", dpi=dpi_val)
-    plt.close()
-
-    # photon hit time
-    fig, ax = plt.subplots()
-    for sim in range(len(input_paths)):
-        ax.stairs(hists[sim][telescope]["time"], bins[sim][telescope]["time"])
-    ax.set_title(f"Hit time (telescope {telescope})")
-    ax.set_xlabel("Hit time [ns]")
-    ax.set_ylabel("Photons")
-    fig.savefig(plot_path + f"tele{telescope}_time.png", dpi=dpi_val)
-    plt.close()
-
-    # photon emission height
-    fig, ax = plt.subplots()
-    for sim in range(len(input_paths)):
-        ax.stairs(hists[sim][telescope]["zem"], bins[sim][telescope]["zem"])
-    ax.set_title(f"Photon emission altitude (telescope {telescope})")
-    ax.set_xlabel("Emission altitude [m]")
-    ax.set_ylabel("Photons")
-    fig.savefig(plot_path + f"tele{telescope}_zem.png", dpi=dpi_val)
-    plt.close()
-
-    # photon wavelength
-    fig, ax = plt.subplots()
-    for sim in range(len(input_paths)):
-        ax.stairs(hists[sim][telescope]["wavelen"], bins[sim][telescope]["wavelen"])
-    ax.set_title(f"Photon wavelength (telescope {telescope})")
-    ax.set_xlabel("Wavelength [nm]")
-    ax.set_ylabel("Photons")
-    fig.savefig(plot_path + f"tele{telescope}_wavelen.png", dpi=dpi_val)
-    plt.close()
+# Plot photon XY positions - only if a single input file is provided 
+if(len(sim_names) == 1):
+    for telescope in range(n_telescopes):
+        # photon XY position - plots only for the first file even if more are provided
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ax.set_aspect("equal")
+        X, Y = np.meshgrid(bins[0][telescope]["x"], bins[0][telescope]["y"])
+        mesh = ax.pcolormesh(X, Y, hists[0][telescope]["xy"], cmap = "gist_heat_r")
+        ax.set_title(f"Hit positions (telescope {telescope})")
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        fig.colorbar(mesh, ax=ax, label="Photon density", pad=0.02, shrink=0.835)
+        fig.savefig(plot_path + f"tele{telescope}_hitXY.png", dpi=dpi_val)
+        plt.close()
