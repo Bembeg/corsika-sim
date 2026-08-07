@@ -7,7 +7,7 @@ import corsikaio
 # path to create the dummy file at
 path = "dummyfile.dat"
 
-# empty array of 273 floats (eventIO block?)
+# empty array of 273 floats (eventIO block)
 data = np.zeros(273).astype(np.float32)
 
 # run header
@@ -123,7 +123,7 @@ word_size = 4
 header_size = corsikaio.constants.BLOCK_SIZE_FLOATS
 header_size_m = (header_size + 1) * word_size
 
-# ID word serves as an additional identifier, ignore and set to 0
+# ID word serves as an additional identifier, ignore and always set to 0
 id_word = 0
 
 # load input card template
@@ -161,120 +161,119 @@ with open(path, 'wb') as f:
     f.write(sync_marker)  # sync marker
     f.write(np.int32(type_tele_def).tobytes())  # type/version word
     f.write(np.int32(id_word).tobytes())  # ID word
-    f.write(np.int32(len(tele_def)*16 + 4).tobytes())  # length word
-    f.write(np.int32(len(tele_def)).tobytes())  # length word
-    # telescope definitions written as
-    # # x1 x2 ... xn y1 y2 ... yn z1 z2 ... zn r1 r2 ... rn
+    f.write(np.int32(len(tele_def) * 16 + 4).tobytes())  # length word
+    f.write(np.int32(len(tele_def)).tobytes())  # number of telescopes
+    # telescope definitions written as:
+    # x1 x2 ... xN y1 y2 ... yN z1 z2 ... zN r1 r2 ... rN
     for par in range(4):
         for tele in tele_def:
             f.write(np.float32(tele[par]).tobytes())
 
-    # write 2 events TODO now manual number of events
+    # write individual events (i.e. showers)
+    # TODO automatic number of events and bunches
     n_events = 2
+    n_bunches = 2
     for evID in range(n_events):
         # EVENT HEADER
-        # write the sync marker
-        f.write(sync_marker)
-        # type/version word
-        f.write(type_event_header.to_bytes(word_size, "little"))      
-        # ID word
-        f.write(int(0).to_bytes(word_size, "little"))
-        # length word
-        f.write(np.int32(header_size_m).tobytes())
-        # number of floats in header
-        f.write(np.int32(header_size).tobytes())
-        # write correct event number
-        event_header_bytes[4:8] = np.float32(evID).tobytes()
-        # write event header
-        f.write(event_header_bytes)
+        f.write(sync_marker)  # sync marker
+        f.write(np.int32(type_event_header).tobytes())  # type/version word
+        f.write(np.int32(id_word).tobytes())  # ID word
+        f.write(np.int32(header_size_m).tobytes())  # length word
+        f.write(np.int32(header_size).tobytes())  # number of floats in header/end
+        event_header_bytes[4:8] = np.float32(evID).tobytes()  # write the correct event number
+        f.write(event_header_bytes)  # write event header
 
         # ARRAY OFFSETS
-        # write the sync marker
-        f.write(sync_marker)
-        # type/version word
-        f.write(type_array_offsets.to_bytes(word_size, "little"))      
-        # ID word
-        f.write(int(0).to_bytes(word_size, "little"))
-        # length word
-        f.write(int(len(array_offsets)*12 + 4).to_bytes(word_size, "little"))
-        # number of offsets
-        f.write(len(array_offsets).to_bytes(word_size, "little"))
-        # write array offsets as (TODO I assume?)
-        # t1 t2 ... tn x1 x2 ... xn y1 y2 ... yn
+        f.write(sync_marker)  # sync marker
+        f.write(np.int32(type_array_offsets).tobytes())  # type/version word
+        f.write(np.int32(id_word).tobytes())  # ID word
+        f.write(np.int32(len(array_offsets) * 12 + 4).tobytes())  # length word
+        f.write(np.int32(len(array_offsets)).tobytes())  # number of offsets (i.e. number of arrays?)      
+        # array offsets written as: (TODO I assume?)
+        # t1 t2 ... tN x1 x2 ... xN y1 y2 ... yN
         for par in range(3):
-            for offset in array_offsets:          
+            for offset in array_offsets:  
                 f.write(np.float32(offset[par]).tobytes())
 
         # TELESCOPE DATA
-        # write the sync marker
-        f.write(sync_marker)
-        # type/version word
-        f.write(type_tele_data.to_bytes(word_size, "little"))      
-        # ID word
-        f.write(int(0).to_bytes(word_size, "little"))
+        f.write(sync_marker)  # sync marker
+        f.write(np.int32(type_tele_data).tobytes())  # type/version word
+        f.write(np.int32(id_word).tobytes())  # ID word
         # length word
-        # this object contains only subobjects, so bit 30 of the length word has to be set to allow iterating over them
-        n_bunches = 2
-        f.write(int(24+n_bunches*16).to_bytes(3, "little"))
-        f.write(int(64).to_bytes(1, "little"))
+        # this object contains only subobjects, so bit 30 of the length word has to be set
+        # split into two 2-byte words, first with the actual length, second to set the bit 30
+        f.write(np.int16(len(tele_def) * (n_bunches * 16 + 24)).tobytes())  # length word
+        f.write(np.int16(16384).tobytes())
 
         # BUNCHES
         # not a top-level object, no sync marker
-        # type/version word - version
-        f.write(type_bunch.to_bytes(2, "little"))      
-        f.write(int(16000).to_bytes(2, "little"))      
-        # ID word
-        f.write(int(0).to_bytes(word_size, "little"))
-        # length word
-        f.write(int(12+n_bunches*16).to_bytes(word_size, "little"))
-        bunches_prefix = np.zeros(3).astype(np.float32)
-        bunches_prefix_bytes = bytearray(bunches_prefix)
-        bunches_prefix_bytes[4:8] = np.float32(n_bunches).tobytes()
-        bunches_prefix_bytes[8:12] = (n_bunches).to_bytes(word_size, "little")
-        f.write(bunches_prefix_bytes)
-
+        f.write(np.int16(type_bunch).tobytes())  # type/version word
+        f.write(np.int16(16000).tobytes())  # include version 16000 in the type/version word, needed to parse correctly
+        f.write(np.int32(id_word).tobytes())  # ID word
+        f.write(np.int32(n_bunches * 16 + 12).tobytes())  # length word
+        # bunch object has three 4-byte words as prefix for array+telescope ID (2x2B int),
+        # one for number of photons (4B float), one for number of bunches (4B int)
+        # TODO change "number of photons = number of bunches" logic
+        f.write(np.int32(0).tobytes())
+        f.write(np.float32(n_bunches).tobytes())
+        f.write(np.int32(n_bunches).tobytes())
+        # write photon bunches - each bunch is 8x2B int
         for b in range(n_bunches):
+            # write bunch as a series of ones
             bunches = np.ones(8).astype(np.int16)
             bunches_bytes = bytearray(bunches)
             f.write(bunches_bytes)        
-        
+
+        # BUNCHES
+        # not a top-level object, no sync marker
+        f.write(np.int16(type_bunch).tobytes())  # type/version word
+        f.write(np.int16(16000).tobytes())  # include version 16000 in the type/version word, needed to parse correctly
+        f.write(np.int32(id_word).tobytes())  # ID word
+        f.write(np.int32(n_bunches * 16 + 12).tobytes())  # length word
+        # bunch object has three 4-byte words as prefix for array+telescope ID (2x2B int),
+        # one for number of photons (4B float), one for number of bunches (4B int)
+        # TODO change "number of photons = number of bunches" logic
+        f.write(np.int16(0).tobytes())
+        f.write(np.int16(1).tobytes())
+        # f.write(np.int32(0).tobytes())
+        f.write(np.float32(n_bunches).tobytes())
+        f.write(np.int32(n_bunches).tobytes())
+        # write photon bunches - each bunch is 8x2B int
+        for b in range(n_bunches):
+            # write bunch as a series of ones
+            bunches = np.ones(8).astype(np.int16)
+            bunches_bytes = bytearray(bunches)
+            f.write(bunches_bytes)    
+
         # EVENT END
-        # write the sync marker
-        f.write(sync_marker)
-        # type/version word
-        f.write(type_event_end.to_bytes(word_size, "little"))      
-        # ID word
-        f.write(int(0).to_bytes(word_size, "little"))
-        # length word
-        f.write(np.int32(header_size_m).tobytes())
-        # number of floats in header
-        f.write(np.int32(header_size).tobytes())
+        f.write(sync_marker)  # sync marker
+        f.write(np.int32(type_event_end).tobytes())  # type/version word
+        f.write(np.int32(id_word).tobytes())  # ID word
+        f.write(np.int32(header_size_m).tobytes())  # length word
+        f.write(np.int32(header_size).tobytes())  # number of floats in header/end
         event_end_bytes = bytearray(data)
+        # modify bytearray to start with the EVTE mark
         event_end_bytes[0:4] = b"EVTE"
+        # correct the event number
         event_end_bytes[4:8] = np.float32(evID).tobytes()
         f.write(event_end_bytes)
 
     # RUN END
-    # write the sync marker
-    f.write(sync_marker)
-    # type/version word
-    f.write(type_run_end.to_bytes(word_size, "little"))      
-    # ID word
-    f.write(int(0).to_bytes(word_size, "little"))
-    # length word
-    f.write(int(16).to_bytes(word_size, "little"))
-    # number of floats in run end (always 3)
-    f.write(int(3).to_bytes(word_size, "little"))
+    f.write(sync_marker)  # sync marker
+    f.write(np.int32(type_run_end).tobytes())  # type/version word
+    f.write(np.int32(id_word).tobytes())  # ID word
+    f.write(np.int32(16).tobytes())  # number of floats in header/end
+    f.write(np.int32(3).tobytes())  # number of floats in run end (always 3)
     run_end = bytearray(np.zeros(3).astype(np.float32)) 
+    # modify bytearray to start with the RUNE mark
     run_end[0:4] = b"RUNE"
+    # correct the number of events
     run_end[8:12] = np.float32(n_events).tobytes()
     f.write(run_end) 
 
 
-
 print("Opening the created binary file")
 with eventio.IACTFile(path) as f:
-# with eventio.IACTFile("../cta/pyeventio/tests/resources/one_shower.dat") as f:
     print("   Opened successfully")
 
     # test run header
@@ -301,10 +300,17 @@ with eventio.IACTFile(path) as f:
     for event in f:
         evID = int(event.header["event_number"])
         start_alt = (event.header["starting_height"] + event.header["first_interaction_height"]) / 1e2
+
         print(f"   Event header:")
         print(f"      [{evID}] energy       : {event.header["total_energy"]} GeV")
         print(f"      [{evID}] 1st int. alt : {start_alt} m")
+        
+        print(f"   Photon bunches:")
+        for telescope in range(n_telescopes):
+            print(f"      Telescope {telescope}:")    
 
-        # print(f"      Showers: {f.header["n_showers"]}")
-        # print(f"      Energy range: {f.header["energy_min"]} - {f.header["energy_max"]}")
-        # print(f"      Obs. level: {f.header["observation_height"][0]}")
+            bunches = event.photon_bunches[telescope]
+
+            for bunch in range(len(bunches)):
+                print(f"         [{bunch}] x={bunches[bunch]["x"]}, y={bunches[bunch]["y"]}, time={bunches[bunch]["time"]}")
+        
