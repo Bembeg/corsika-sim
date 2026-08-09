@@ -34,7 +34,8 @@ def rotation_matrix_from_vectors(vec1, vec2):
     return rotation_matrix
 
 def generate_run_header(version):
-    print("Generating run header")
+    if debug:
+        print("Generating run header")
 
     # run header - 273 floats
     run_header = np.zeros(273).astype(np.float32) 
@@ -80,7 +81,8 @@ def generate_run_header(version):
     return run_header_bytes
 
 def generate_event_header(event_number, version):
-    print(f"Generating event header for event {event_number}")
+    if debug:
+        print(f"Generating event header for event {event_number}")
 
     event_header = np.zeros(273).astype(np.float32)
     
@@ -92,7 +94,6 @@ def generate_event_header(event_number, version):
     # mapping of primary particle IDs from CORSIKA8 to CORSIKA7 
     # TODO proton number?
     pid_map = {"Photon": 1, "Proton": 2}
-
 
     # primary energies
     with open(path_input + "/primary/summary.yaml", "r") as read_file:
@@ -168,9 +169,10 @@ def generate_event_header(event_number, version):
     return event_header_bytes
 
 def generate_telescope_definitions():
-    print(f"Generating telescope definitions")
+    if debug:
+        print(f"Generating telescope definitions")
 
-    # telescope definions are formatted as [x,y,z,r]
+    # telescope definions are formatted as [position, pointing, radius] - [[x,y,z], [pX,pY,pZ], r]
     telescope_defs = []
 
     with open(path_input + "/cherenkov/config.yaml", "r") as read_file:
@@ -179,27 +181,37 @@ def generate_telescope_definitions():
         names_tele = [tele for tele in content["observers"]]
 
         for tele in names_tele:
-            # get telescope position
-            telescope_defs.append(content["observers"][tele]["position"])
-            # and radius
-            telescope_defs[-1].append(content["observers"][tele]["radius"])
+            # empty telescope definition
+            telescope_def = []
 
-    if(debug):
-        for tele in range(len(telescope_defs)):
-            print(f"   [{tele}] x={telescope_defs[tele][0]}, y={telescope_defs[tele][1]}, z={telescope_defs[tele][2]}")
-            print(f"   [{tele}] r={telescope_defs[tele][3]}")
+            # get telescope position
+            telescope_def.append(content["observers"][tele]["position"])
+            # pointing direction
+            telescope_def.append(content["observers"][tele]["pointing"])
+            # and radius
+            telescope_def.append(content["observers"][tele]["radius"])
+
+            # append telescope definition to the list
+            telescope_defs.append(telescope_def)
+
+    if debug:
+        teleID = 0
+        for tele in telescope_defs:
+            print(f"   [{teleID}] x={tele[0][0]}, y={tele[0][1]}, z={tele[0][2]}")
+            print(f"   [{teleID}] px={tele[1][0]}, py={tele[1][1]}, pz={tele[1][2]}")
+            print(f"   [{teleID}] r={tele[2]}")     
 
     return telescope_defs
 
 
 def generate_array_offsets():
-    print("Generating array offsets")
+    if debug:
+        print("Generating array offsets (all zeros)")
 
     # array offsets are defined as [t,x,y]
     array_offsets = []
 
     # assume one array with zero offsets in time and (x,y)
-    print("   (defining zero offsets)")
     array_offsets.append([0,0,0])
 
     if(debug):
@@ -208,7 +220,54 @@ def generate_array_offsets():
 
     return array_offsets
 
-debug = True
+def generate_input_card(version):
+    if debug:
+        print("Generating input card")
+
+    # get CLI arguments passed to a CORSIKA 8 run
+    with open(path_input + "/config.yaml", "r") as read_file:
+        content = yaml.safe_load(read_file)
+        args = content["args"]
+
+    args_split = args.split()
+    args_split.pop(0)
+
+    input_card = [f"CORSIKA 8 ({version}) inputs:"]
+
+    for i in range(len(args_split)):
+        if args_split[i][0] == "-":
+            
+            arg_line = args_split[i].strip("-")
+
+            # check that next one is not a par
+            if args_split[i+1][0] != "-":
+                arg_line += (" " + args_split[i+1])
+                
+            input_card.append(arg_line)
+
+    # convert input card to eventIO strings and to a bytearray
+    input_card_bytes = bytearray()
+    for line in input_card:
+        if debug:
+            print(f"   {line}")
+
+        # eventIO string format is a 2-byte-integer for length + the string itself
+        input_card_bytes += np.int16(len(line)).tobytes()
+        input_card_bytes += line.encode()
+
+    return input_card_bytes, len(input_card)
+
+
+def get_number_showers():
+    with open(path_input + "/summary.yaml", "r") as read_file:
+        content = yaml.safe_load(read_file)
+    return content["showers"]
+
+# debug mode
+debug = False
+
+# override the CORSIKA version to 8.0
+version_override = 8.0
 
 # check that path to C8 output was provided
 if len(sys.argv) == 1:
@@ -228,9 +287,8 @@ if len(sys.argv) >= 3:
     # output name provided by user
     path_output = "output/" + sys.argv[2] + "/" + name_output
 else:
-    # determine output name from the input
-    path_input_split = path_input.strip("/").split("/")
-    path_output = "output/" + path_input_split[-1] + "/" + name_output
+    # store output in the input dir
+    path_output = sys.argv[1] + "/" + name_output
 
 print(f"Output path : '{path_output}'")
 
@@ -277,30 +335,29 @@ id_word = 0
 data = np.zeros(273).astype(np.float32)
 
 # generate the run header, override version to 8.0
-run_header_bytes = generate_run_header(version=8.0)
-
-# generate the event header, override version to 8.0
-event_header_bytes = generate_event_header(event_number=0, version=8.0)
+run_header_bytes = generate_run_header(version=version_override)
 
 # generate telescope definition object
 telescope_defs = generate_telescope_definitions()
 
+# generate array offsets
 array_offsets = generate_array_offsets()
 
-# load input card template
-with open("template_input_card.txt", "r") as input_card:
-    data_input_card = input_card.readlines()
-    lines_input_card = len(data_input_card)
+# generate input card
+input_card_bytes, input_card_lines = generate_input_card(version=version_override)
 
-# convert input card to eventIO strings and to a bytearray
-input_card_bytearray = bytearray()
-for line in data_input_card:
-    # remove newline character
-    line_strip = line.strip()
-    # eventIO string format is a 2-byte-integer for length + the string itself
-    input_card_bytearray += np.int16(len(line_strip)).tobytes()
-    input_card_bytearray += line_strip.encode()
+# number of events (showers)
+n_events = get_number_showers()
 
+# # analyze number of telescopes and bunches in events:
+# for evID in range(n_events):
+#     print(f"event {evID}: ")
+#     for teleID in range(len(telescope_defs)):
+#         filtered_data = cher_data[(cher_data["shower"] == evID) & (cher_data["obsId"] == teleID)]
+#         n_bunch = filtered_data.count()["hitX"]
+#         print(f"   telescope {teleID}: {n_bunch} bunches")
+
+print(f"\nWriting eventIO file")
 with open(path_output, 'wb') as f:
     # RUN HEADER
     f.write(sync_marker)  # sync marker
@@ -314,9 +371,9 @@ with open(path_output, 'wb') as f:
     f.write(sync_marker)  # sync marker
     f.write(np.int32(type_input_card).tobytes())  # type/version word
     f.write(np.int32(id_word).tobytes())  # ID word
-    f.write(np.int32(len(input_card_bytearray) + 4).tobytes())  # length word - number of bytes in memory, extended by one 4-byte word
-    f.write(np.int32(lines_input_card).tobytes())  # number of lines in input card
-    f.write(input_card_bytearray)  # write input card data
+    f.write(np.int32(len(input_card_bytes) + 4).tobytes())  # length word - number of bytes in memory, extended by one 4-byte word
+    f.write(np.int32(input_card_lines).tobytes())  # number of lines in input card
+    f.write(input_card_bytes)  # write input card data
 
     # TELESCOPE DEFINITIONS
     f.write(sync_marker)  # sync marker
@@ -326,22 +383,25 @@ with open(path_output, 'wb') as f:
     f.write(np.int32(len(telescope_defs)).tobytes())  # number of telescopes
     # telescope definitions written as:
     # x1 x2 ... xN y1 y2 ... yN z1 z2 ... zN r1 r2 ... rN
-    for par in range(4):
-        for tele in telescope_defs:
-            f.write(np.float32(tele[par]).tobytes())
+    for tele in telescope_defs:
+        f.write(np.float32(tele[0][0]).tobytes())
+        f.write(np.float32(tele[0][1]).tobytes())
+        f.write(np.float32(tele[0][2]).tobytes())
+        f.write(np.float32(tele[2]).tobytes())
 
     # write individual events (i.e. showers)
-    # TODO automatic number of events and bunches
-    n_events = 2
-    n_bunches = 2
     for evID in range(n_events):
+        print(f"   writing event {evID} ({evID+1}/{n_events})")
+
+        # generate the event header, override version to 8.0
+        event_header_bytes = generate_event_header(event_number=evID, version=version_override)
+
         # EVENT HEADER
         f.write(sync_marker)  # sync marker
         f.write(np.int32(type_event_header).tobytes())  # type/version word
         f.write(np.int32(id_word).tobytes())  # ID word
         f.write(np.int32(header_size_m).tobytes())  # length word
         f.write(np.int32(header_size).tobytes())  # number of floats in header/end
-        event_header_bytes[4:8] = np.float32(evID).tobytes()  # write the correct event number
         f.write(event_header_bytes)  # write event header
 
         # ARRAY OFFSETS
@@ -356,55 +416,97 @@ with open(path_output, 'wb') as f:
             for offset in array_offsets:  
                 f.write(np.float32(offset[par]).tobytes())
 
+        # filter cherenkov data for this event
+        event_data = cher_data[cher_data["shower"] == evID]
+
+        # number of photon bunches and photons in this event
+        n_bunch_event = event_data.count()["weight"]
+        n_photons_event = event_data.sum()["weight"]
+        # number of telescopes with hits in this event 
+        n_tele_event = event_data.nunique()["obsId"]
+
+        print(f"      {n_bunch_event} bunches, {n_photons_event} photons, {n_tele_event} telescopes")
+
         # TELESCOPE DATA
         f.write(sync_marker)  # sync marker
         f.write(np.int32(type_tele_data).tobytes())  # type/version word
         f.write(np.int32(id_word).tobytes())  # ID word
         # length word
-        # this object contains only subobjects, so bit 30 of the length word has to be set
-        # split into two 2-byte words, first with the actual length, second to set the bit 30
-        f.write(np.int16(len(telescope_defs) * (n_bunches * 16 + 24)).tobytes())  # length word
+        # The TelescopeDefinitions object contains only subobjects, so bit 30 of the length word has to be set.
+        # Split the length word into two 2-byte words, first with the actual length, second to set the bit 30
+        # Actual length is 
+        #   = n_bunches * 16 (each bunch is 8 x 2-byte)
+        #   + n_telescopes * 24 (one bunch object per telescope, 12-byte bunch object header + 12-byte bunch object prefix)
+        f.write(np.int16(n_bunch_event * 16 + n_tele_event * 24).tobytes())  # length word
         f.write(np.int16(16384).tobytes())
 
-        # BUNCHES
-        # not a top-level object, no sync marker
-        f.write(np.int16(type_bunch).tobytes())  # type/version word
-        f.write(np.int16(16000).tobytes())  # include version 16000 in the type/version word, needed to parse correctly
-        f.write(np.int32(id_word).tobytes())  # ID word
-        f.write(np.int32(n_bunches * 16 + 12).tobytes())  # length word
-        # bunch object has three 4-byte words as prefix for array+telescope ID (2x2B int),
-        # one for number of photons (4B float), one for number of bunches (4B int)
-        # TODO change "number of photons = number of bunches" logic
-        f.write(np.int32(0).tobytes())
-        f.write(np.float32(n_bunches).tobytes())
-        f.write(np.int32(n_bunches).tobytes())
-        # write photon bunches - each bunch is 8x2B int
-        for b in range(n_bunches):
-            # write bunch as a series of ones
-            bunches = np.ones(8).astype(np.int16)
-            bunches_bytes = bytearray(bunches)
-            f.write(bunches_bytes)        
+        # analyze number of telescopes and bunches in events:
+        for teleID in range(n_tele_event):
+            # filter cherenkov data in this event for this telescope
+            tele_data = event_data[event_data["obsId"] == teleID]
 
-        # BUNCHES
-        # not a top-level object, no sync marker
-        f.write(np.int16(type_bunch).tobytes())  # type/version word
-        f.write(np.int16(16000).tobytes())  # include version 16000 in the type/version word, needed to parse correctly
-        f.write(np.int32(id_word).tobytes())  # ID word
-        f.write(np.int32(n_bunches * 16 + 12).tobytes())  # length word
-        # bunch object has three 4-byte words as prefix for array+telescope ID (2x2B int),
-        # one for number of photons (4B float), one for number of bunches (4B int)
-        # TODO change "number of photons = number of bunches" logic
-        f.write(np.int16(0).tobytes())
-        f.write(np.int16(1).tobytes())
-        # f.write(np.int32(0).tobytes())
-        f.write(np.float32(n_bunches).tobytes())
-        f.write(np.int32(n_bunches).tobytes())
-        # write photon bunches - each bunch is 8x2B int
-        for b in range(n_bunches):
-            # write bunch as a series of ones
-            bunches = np.ones(8).astype(np.int16)
-            bunches_bytes = bytearray(bunches)
-            f.write(bunches_bytes)    
+            # number of bunches in the event for this telescope
+            n_bunch_tele = tele_data.count()["weight"]
+            n_photons_tele = tele_data.sum()["weight"] 
+
+            print(f"         telescope {teleID}: {n_bunch_tele} bunches, {n_photons_event} photons")
+
+            # BUNCHES
+            # not a top-level object, no sync marker
+            f.write(np.int16(type_bunch).tobytes())  # type/version word
+            f.write(np.int16(16000).tobytes())  # include version 16000 in the type/version word, needed to parse correctly
+            f.write(np.int32(id_word).tobytes())  # ID word
+            f.write(np.int32(n_bunch_tele * 16 + 12).tobytes())  # length word, 16-byte per bunch + 12-byte header
+            # bunch object length is 12 bytes:
+            #   = prefix for array and telescope ID (2 x 2-byte int)
+            #   + number of photons (4-byte float),
+            #   + number of bunches (4-byte int)
+            f.write(np.int16(0).tobytes())
+            f.write(np.int16(teleID).tobytes())
+            f.write(np.float32(n_photons_tele).tobytes())
+            f.write(np.int32(n_bunch_tele).tobytes())
+
+            center = telescope_defs[teleID][0]
+            pointing = telescope_defs[teleID][1]
+            radius = telescope_defs[teleID][2]
+
+            # print(center, pointing, radius)
+
+            # calculate rotation matrix to transform points onto the ground plane
+            rotation_matrix = rotation_matrix_from_vectors(pointing, [0, 0, 1])
+
+            # write photon bunches
+            for _, bunch in tele_data.iterrows():
+                # extract bunch values from the dataframe
+                hit = [bunch["hitX"], bunch["hitY"], bunch["hitZ"]]
+                dir = [bunch["dirX"], bunch["dirY"], bunch["dirZ"]]
+                time = bunch["time"]
+                zem = bunch["emissionAlt"]
+                photons = bunch["weight"]
+                wavelength = bunch["wavelength"]
+
+                # transform hits to observer local coordinate system
+                trf_hits = np.dot(rotation_matrix, np.subtract(hit, center))
+                trf_dirs = np.dot(rotation_matrix, dir)
+
+                print(bunch)                
+                
+                # in compact mode each bunch is 8 x 2-byte int and can be modified by a factor, so we modify it the opposite way to counter the reader:
+                #   x (divided by 10)
+                #   y (divided by 10),
+                #   cx (divided by 30000, clamped to [-1,1])
+                #   cy (divided by 30000, clamped to [-1,1])
+                #   time (divided by 10)
+                #   zem (10 ^ (x/1000) for x)
+                #   photons (divided by 100)
+                #   wavelength
+    
+                bunch_array = [trf_hits[0] * 10, trf_hits[1] * 10, trf_dirs[0] * 30000, trf_dirs[1] * 30000, time * 10, np.log10(zem), photons * 100, wavelength], 
+                print(bunch_array)
+                
+                # write bunch as a series of ones
+                bunches_bytes = bytearray(np.array(bunch_array, dtype=np.int16))
+                f.write(bunches_bytes)
 
         # EVENT END
         f.write(sync_marker)  # sync marker
@@ -432,9 +534,6 @@ with open(path_output, 'wb') as f:
     run_end[8:12] = np.float32(n_events).tobytes()
     f.write(run_end) 
 
-
-
-
 print(f"\nOpening the created binary file '{path_output}")
 with eventio.IACTFile(path_output) as f:
     print("   Opened successfully")
@@ -446,10 +545,14 @@ with eventio.IACTFile(path_output) as f:
     print(f"      Energy range    : {f.header["energy_min"]} - {f.header["energy_max"]}")
     print(f"      Obs. level      : {f.header["observation_height"][0]}")
 
-    # test input card
+    # test input card - print first five lines
     input_card = f.input_card.decode("utf-8").split("\n")
-    print(f"   Input card header: '{input_card[0]}'")
-
+    print(f"   Input card header:")
+    for i in range(5):
+        print(f"      {input_card[i]}")
+    if len(input_card) > 5:
+        print(f"      ...")
+    
     # test telescope definitions    
     n_telescopes = len(f.telescope_positions)
     print(f"   Telescopes ({n_telescopes}):")
@@ -469,17 +572,17 @@ with eventio.IACTFile(path_output) as f:
         print(f"      [{evID}] 1st int. alt : {start_alt} m")
         
         print(f"   Photon bunches:")
-        for telescope in range(n_telescopes):
-            print(f"      Telescope {telescope}:")    
-
-            bunches = event.photon_bunches[telescope]
-
-            for bunch in range(len(bunches)):
-                print(f"         [{bunch}] x={bunches[bunch]["x"]}, y={bunches[bunch]["y"]}, time={bunches[bunch]["time"]}")
+        bunches = event.photon_bunches
         
-
-sys.exit(0)
-
+        for teleID, bunches in event.photon_bunches.items():
+            print(f"      Telescope {teleID}:")    
+        
+            bunchID = 0
+            # for bunch in range(len(bunches)):
+            for bunch in bunches:
+                print(f"         [{"{0:2d}".format(bunchID)}] x = {"{0:3f}".format(bunch["x"])},   y = {"{0:3f}".format(bunch["y"])}, cx = {"{0:3f}".format(bunch["cx"])}, cy = {"{0:3f}".format(bunch["cy"])}")
+                print(f"              t = {"{0:3f}".format(bunch["time"])}, zem = {"{0:3f}".format(bunch["zem"])}, ph = {"{0:3f}".format(bunch["photons"])}, wl = {"{0:3f}".format(bunch["wavelength"])}")        
+                bunchID += 1
 
 # # process photon data
 # for observer_name in conf["observers"]:
