@@ -3,11 +3,12 @@ import sys
 import numpy as np
 import matplotlib.lines as mlines
 from matplotlib import pyplot as plt
+import yaml
 
 import eventio
 
 
-debug = False
+debug = True
 
 output_path = sys.argv[1]
 
@@ -69,6 +70,9 @@ for sim in range(len(input_paths)):
             bounds["first_int"].append((event.header["starting_height"] + event.header["first_interaction_height"]) / 1e5)
 
             for telescope in range(len(f.telescope_positions)):
+                if len(event.photon_bunches) == 0:
+                    continue
+
                 if (len(event.photon_bunches[telescope]["zem"]) > 0):
                     bounds["zem"]["min"].append(min(event.photon_bunches[telescope]["zem"]) / 1e2)
                     bounds["zem"]["max"].append(max(event.photon_bunches[telescope]["zem"]) / 1e2)
@@ -92,9 +96,9 @@ bound_photons_max = np.quantile(bounds["photons"], 0.97)
 if(debug):
     print("Printing bounds:")
     print(f"   first inter. alt. [km] : {bound_first_int_min} - {bound_first_int_max}")
-    print(f"         photons / shower : {bound_photons_min} - {bound_photons_max}")
-    print(f"      emission_height [m] : {bound_zem_min} - {bound_zem_max}")
-    print(f"                time [ns] : {bound_time_min} - {bound_time_max}")
+    print(f"   photons / shower       : {bound_photons_min} - {bound_photons_max}")
+    print(f"   emission_height [m]    : {bound_zem_min} - {bound_zem_max}")
+    print(f"   time [ns]              : {bound_time_min} - {bound_time_max}")
 
 # initialize global histograms
 hists = {}
@@ -116,28 +120,16 @@ for sim in range(len(input_paths)):
         input_card = f.input_card.decode("utf-8").split("\n")
         # selected parameters 
         sel_params = ["CORSIKA", # header
-                "RUNNR", # n_runs
-                "EVTNR", # n_events
-                "NSHOW", # n_showers
-                "PRMPAR", # primary particle
-                "ERANGE", # its energy
-                "THETAP", # zenith angle
-                "PHIP", # azimuth angle
-                "OBSLEV", # observation level
-                "ATMOFILE", # atmosphere table
-                "MAGNET", # magnetic field
-                "CERSIZ", # photon bunch size
-                "CWAVLG" # cherenkov photon wavelength range
                 ]
         
         # print selected parameters from the input card    
         if(debug):
-            print(f"input card (selected params):")
+            print(f"   input card (selected params):")
             for param in sel_params:
                 for line in input_card:
                     # find row with the requested parameter
                     if param in line:
-                        print(f"   {line}")
+                        print(f"      '{line}'")
 
         # number of telescopes
         n_telescopes = len(f.telescope_positions)
@@ -156,12 +148,12 @@ for sim in range(len(input_paths)):
             bins[sim][telescope] = {}
             hists[sim][telescope] = {}
             photons[sim][telescope] = []
-            bins[sim][telescope]["x"] = np.linspace(-3.0 * radius, 3.0 * radius, n_bins)
+            bins[sim][telescope]["x"] = np.linspace(-1.0 * radius, 1.1 * radius, n_bins)
             hists[sim][telescope]["x"] = np.zeros(len(bins[sim][telescope]["x"])-1)
-            bins[sim][telescope]["y"] = np.linspace(-3.0 * radius, 3.0 * radius, n_bins)
+            bins[sim][telescope]["y"] = np.linspace(-1.1 * radius, 1.1 * radius, n_bins)
             hists[sim][telescope]["y"] = np.zeros(len(bins[sim][telescope]["y"])-1)
             hists[sim][telescope]["xy"] = np.zeros((len(bins[sim][telescope]["x"])-1, len(bins[sim][telescope]["y"])-1))
-            bins[sim][telescope]["r"] = np.linspace(0, 3.0 * radius, n_bins)
+            bins[sim][telescope]["r"] = np.linspace(0, 1.1 * radius, n_bins)
             hists[sim][telescope]["r"] = np.zeros(len(bins[sim][telescope]["r"])-1)
             bins[sim][telescope]["cx"] = np.linspace(0, 1, n_bins)
             hists[sim][telescope]["cx"] = np.zeros(len(bins[sim][telescope]["cx"])-1)
@@ -187,6 +179,9 @@ for sim in range(len(input_paths)):
             hists[sim]["first_int"] += hist
 
             for telescope in range(n_telescopes):
+                if len(event.photon_bunches) == 0:
+                    continue
+
                 # hit radius
                 radius = np.sqrt(event.photon_bunches[telescope]["x"] * event.photon_bunches[telescope]["x"] + event.photon_bunches[telescope]["y"] * event.photon_bunches[telescope]["y"]) / 1e2
                 
@@ -235,9 +230,9 @@ for sim in range(len(input_paths)):
             print(f"      [{telescope}] : {sum(photons[sim][telescope])}")
 
         # CORSIKA7 would produce a run.log file
-        # CORSIKA8 would produce a runtimes.csv file
+        # CORSIKA8 would produce a summary.yaml file
         c7_log = input_paths[sim] + "/run.log"
-        c8_runtimes = input_paths[sim] + "/runtimes.csv"
+        c8_log = input_paths[sim] + "/summary.yaml"
 
         if (os.path.exists(c7_log)):
             # load and read log file
@@ -251,9 +246,13 @@ for sim in range(len(input_paths)):
                         line_split = line.split()
                         runtime_total = line_split[line_split.index("after") + 1]
 
-        elif (os.path.exists(c8_runtimes)):
-            n_events = 1
-            runtime_total = 0
+        elif (os.path.exists(c8_log)):
+            # load and read log file
+            with open(c8_log, "r") as read_file:
+                content = yaml.safe_load(read_file)
+    
+                runtime_total = content["runtime_raw"]
+                n_events = content["showers"]
            
         runtime_shower = float(runtime_total) / int(n_events)
         print(f"   runtime stats: total = {runtime_total} s, per shower = {runtime_shower} s ({n_events} showers)") 
@@ -292,7 +291,7 @@ names = ["first_int", "hitX", "hitY",
  "hitR", "hitCX", "hitCY", "time",
  "Hem", "wavelen", "bunch", "photons"]
 
-log_scale = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+log_scale = [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0]
 
 normalize = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
 
