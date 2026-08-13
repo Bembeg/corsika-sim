@@ -31,6 +31,7 @@ def rotation_matrix_from_vectors(vec1, vec2):
     s = np.linalg.norm(v)
     kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
     rotation_matrix = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
+
     return rotation_matrix
 
 def generate_run_header(version):
@@ -40,26 +41,25 @@ def generate_run_header(version):
     # run header - 273 floats
     run_header = np.zeros(273).astype(np.float32) 
 
-    # observation level
-    with open(path_input + "/particles/config.yaml", "r") as read_file:
-        content = yaml.safe_load(read_file)
-        # observation level stored in m, convert to cm
-        header_obs_level = np.float32(np.linalg.norm(content["plane"]["center"]) * 1e2) 
+    # load input files
+    with open(path_input + "/particles/config.yaml", "r") as file_particles:
+        content_particles = yaml.safe_load(file_particles)
+    with open(path_input + "/primary/summary.yaml", "r") as file_primary:
+        content_primary = yaml.safe_load(file_primary)
 
-    with open(path_input + "/primary/summary.yaml", "r") as read_file:
-        content = yaml.safe_load(read_file)
-        energies_primary = [content[shower]["total_energy"] for shower in content]
-        header_ene_min = min(energies_primary)
-        header_ene_max = max(energies_primary)
-        header_n_show = len(content)
+    # observation level stored in m, convert to cm
+    header_obs_level = np.float32(np.linalg.norm(content_particles["plane"]["center"]) * 1e2) 
+
+    energies_primary = [content_primary[shower]["total_energy"] for shower in content_primary]
+    header_ene_min = min(energies_primary)
+    header_ene_max = max(energies_primary)
+    header_n_show = len(content_primary)
 
     # manually define some values for the run header
     header_version = np.float32(version)
-    header_date = np.float32(0)
     header_n_obs_levels = np.float32(1)
   
     # put values into the run header - for reference, see run_header_fields object in corsikaio/subblocks/run_header.py
-    run_header[2] = header_date
     run_header[3] = header_version
     run_header[4] = header_n_obs_levels
     run_header[5] = header_obs_level
@@ -68,7 +68,6 @@ def generate_run_header(version):
     run_header[92] = header_n_show
 
     if (debug):
-        print(f"   date       : {header_date}")
         print(f"   version    : {header_version}")
         print(f"   obs. level : {header_obs_level} cm")
         print(f"   energy min : {header_ene_min}")
@@ -77,6 +76,8 @@ def generate_run_header(version):
 
     # convert header to bytearray
     run_header_bytes = bytearray(run_header)
+
+    # write the header tag
     run_header_bytes[0:4] = b"RUNH"
 
     return run_header_bytes
@@ -85,80 +86,86 @@ def generate_event_header(version):
     if debug:
         print(f"Generating event header")
 
+    # event header - 273 floats
     event_header = np.zeros(273).astype(np.float32)
-    
-    # observation level
-    with open(path_input + "/particles/config.yaml", "r") as read_file:
-        content = yaml.safe_load(read_file)
-        # injection height stored in m, convert to cm
-        header_obs_level = np.float32(np.linalg.norm(content["plane"]["center"]) * 1e2)
 
-    # mapping of primary particle IDs from CORSIKA8 to CORSIKA7 
-    # TODO proton number?
-    pid_map = {"Photon": 1, "Proton": 2}
+    # mapping of primary particle IDs from CORSIKA 8 to CORSIKA 7 
+    pid_map = {"Photon": 1, "Proton": 14}
 
-    # array of first interaction heights
+    # array of first interaction altitudes
     first_ints = []
  
-    # default observation level at sea level
-    obs_level = 0
+    # default observation altitude set to sea level
+    obs_alt = 0
 
-    # observation level
-    with open(path_input + "/config.yaml", "r") as read_file:
-        content = yaml.safe_load(read_file)
-        args = content["args"]
-        args_split = args.split()
-        for arg in range(len(args_split)):
-            if "observation-level" in args_split[arg]:
-                # observation level in cm
-                obs_level = np.float32(args_split[arg+1]) * 1e2
-
-    # primary energies and first interactions
+    # load input files
+    with open(path_input + "/particles/config.yaml", "r") as file_particles:
+        content_particles = yaml.safe_load(file_particles)
+    with open(path_input + "/config.yaml", "r") as file_config:
+        content_config = yaml.safe_load(file_config)
     with open(path_input + "/primary/summary.yaml", "r") as prim_sum:
-        with open(path_input + "/interactions/summary.yaml", "r") as int_sum:
-            prim_sum_content = yaml.safe_load(prim_sum)
-            int_sum_content = yaml.safe_load(int_sum)
+        content_prim_sum = yaml.safe_load(prim_sum)
+    with open(path_input + "/interactions/summary.yaml", "r") as int_sum:
+        content_int_sum = yaml.safe_load(int_sum)
+                    
+    # observation height stored in m, convert to cm
+    header_obs_level = np.float32(np.linalg.norm(content_particles["plane"]["center"]) * 1e2)
 
-            # number of events / showers
-            n_events = len(prim_sum_content)
+    # in principle, we do not know the height of ground level, so
+    # conversion between observation altitude and height is undefined
 
-            for ev_id in range(n_events):
-                header_total_energy = np.float32(prim_sum_content["shower_" + str(ev_id)]["total_energy"])
-                header_pid = np.float32(pid_map[prim_sum_content["shower_" + str(ev_id)]["name"]])    
+    # parse config to get the observation altitude
+    args_split = content_config["args"].split()
+    for arg in range(len(args_split)):
+        if "observation-level" in args_split[arg]:
+            # observation altitude in cm
+            obs_alt = np.float32(args_split[arg+1]) * 1e2     
 
-                prim_x = prim_sum_content["shower_" + str(ev_id)]["x"]
-                prim_y = prim_sum_content["shower_" + str(ev_id)]["y"]
-                prim_z = prim_sum_content["shower_" + str(ev_id)]["z"]
-                header_start_height = obs_level + np.float32(np.linalg.norm([prim_x, prim_y, prim_z]) * 1e2)
+    # number of events / showers
+    n_events = len(content_prim_sum)
+
+    # primary energy and type
+    header_total_energy = np.float32(content_prim_sum["shower_0"]["total_energy"])
+    header_pid = np.float32(pid_map[content_prim_sum["shower_0"]["name"]])    
+
+    # primary particle position - constant across events
+    prim_x = content_prim_sum["shower_0"]["x"]
+    prim_y = content_prim_sum["shower_0"]["y"]
+    prim_z = content_prim_sum["shower_0"]["z"]
+
+    # primary particle injection altitude
+    header_start_height = obs_alt + np.float32(np.linalg.norm([prim_x, prim_y, prim_z]) * 1e2)
+
+    # primary particle momentum    
+    header_mom_x = content_int_sum["shower_0"]["px"]
+    header_mom_y = content_int_sum["shower_0"]["py"]
+    header_mom_mz = content_int_sum["shower_0"]["pz"]
+
+    # iterate over showers to collect first interaction altitudes
+    for ev_id in range(n_events):
+        first_int_x = content_int_sum["shower_" + str(ev_id)]["x"]
+        first_int_y = content_int_sum["shower_" + str(ev_id)]["y"]
+        first_int_z = content_int_sum["shower_" + str(ev_id)]["z"]
         
-                first_int_x = int_sum_content["shower_" + str(ev_id)]["x"]
-                first_int_y = int_sum_content["shower_" + str(ev_id)]["y"]
-                first_int_z = int_sum_content["shower_" + str(ev_id)]["z"]
-                prim_mom_x = int_sum_content["shower_" + str(ev_id)]["px"]
-                prim_mom_y = int_sum_content["shower_" + str(ev_id)]["py"]
-                prim_mom_z = int_sum_content["shower_" + str(ev_id)]["pz"]
-                
-                # first interaction height stored in m, convert to cm
-                first_ints.append(-obs_level - np.float32(np.linalg.norm([first_int_x, first_int_y, first_int_z])* 1e2))
-
+        # first interaction height stored in m, convert to cm
+        first_ints.append(-obs_alt - np.float32(np.linalg.norm([first_int_x, first_int_y, first_int_z])* 1e2))
+    
     # manually define values for the event header
     header_version = np.float32(version)
     header_n_obs_levels = np.float32(1)
-    # momentum vector
-    header_mom_x = prim_mom_x
-    header_mom_y = prim_mom_y
-    header_mom_mz = prim_mom_z
+
     # TODO calculate zenith, azimuth, theta, phi
     header_zenith = np.float32(0)
     header_azimuth = np.float32(0)
     header_theta = np.float32(0)
     header_phi = np.float32(0)
+
     # TODO cherenkov parameters from config
     header_cher_bunch = np.float32(5)
-    header_cher_wavelen_min = np.float32(300)
-    header_cher_wavelen_max = np.float32(800)
+    header_cher_wavelen_min = np.float32(240)
+    header_cher_wavelen_max = np.float32(1000)
     
-    # put values into the run header - for reference, see run_header_fields object in corsikaio/subblocks/run_header.py
+    # put values into the event header - for reference, see event_header_fields object in corsikaio/subblocks/event_header.py
     event_header[2] = header_pid
     event_header[3] = header_total_energy
     event_header[7] = header_mom_x
@@ -209,27 +216,39 @@ def generate_telescope_definitions():
 
     # telescope definions are formatted as [position, pointing, radius] - [[x,y,z], [pX,pY,pZ], r]
     telescope_defs = []
+    # rotation matrices to transform hit positions onto the ground plane
+    rotation_matrices = []
 
+    # load input files
     with open(path_input + "/cherenkov/config.yaml", "r") as read_file:
-        content = yaml.safe_load(read_file)
-        # get telescope names
-        names_tele = [tele for tele in content["observers"]]
+        content_cherenkov = yaml.safe_load(read_file)
+    with open(path_input + "/particles/config.yaml", "r") as file_particles:
+        content_particles = yaml.safe_load(file_particles)
+                    
+    # observation height in cm
+    obs_height = np.linalg.norm(content_particles["plane"]["center"]) * 1e2
 
-        for tele in names_tele:
-            # empty telescope definition
-            telescope_def = []
+    # get telescope names
+    names_tele = [tele for tele in content_cherenkov["observers"]]
 
-            # get telescope position
-            telescope_def.append(np.multiply(content["observers"][tele]["position"], 1e2))
-            # subtract observation level
-            telescope_def[-1][2] -= 637314700
-            # pointing direction
-            telescope_def.append(content["observers"][tele]["pointing"])
-            # and radius
-            telescope_def.append(content["observers"][tele]["radius"] * 1e2)
+    for tele in names_tele:
+        # empty telescope definition
+        telescope_def = []
 
-            # append telescope definition to the list
-            telescope_defs.append(telescope_def)
+        # get telescope position
+        telescope_def.append(np.multiply(content_cherenkov["observers"][tele]["position"], 1e2))
+        # subtract observation level
+        telescope_def[-1][2] -= obs_height
+        # pointing direction
+        telescope_def.append(content_cherenkov["observers"][tele]["pointing"])
+        # and radius
+        telescope_def.append(content_cherenkov["observers"][tele]["radius"] * 1e2)
+
+        # append telescope definition to the list
+        telescope_defs.append(telescope_def)
+
+        # calculate rotation matrix
+        rotation_matrices.append(rotation_matrix_from_vectors(content_cherenkov["observers"][tele]["pointing"], [0, 0, 1]))
 
     if debug:
         teleID = 0
@@ -238,18 +257,42 @@ def generate_telescope_definitions():
             print(f"   [{teleID}] px = {tele[1][0]}, py = {tele[1][1]}, pz = {tele[1][2]}")
             print(f"   [{teleID}] r = {tele[2]} cm")     
 
-    return telescope_defs
-
+    return telescope_defs, rotation_matrices
 
 def generate_array_offsets():
     if debug:
-        print("Generating array offsets (all zeros)")
+        print("Generating array offsets")
 
     # array offsets are defined as [t,x,y]
     array_offsets = []
 
-    # assume one array with zero offsets in time and (x,y)
-    array_offsets.append([392843, 0, 0])
+    # load input file
+    with open(path_input + "/primary/summary.yaml", "r") as read_file:
+        content = yaml.safe_load(read_file)
+
+    # primary particle type
+    particle = content["shower_0"]["name"]    
+
+    # primary particle position
+    prim_x = content["shower_0"]["x"]
+    prim_y = content["shower_0"]["y"]
+    prim_z = content["shower_0"]["z"]
+
+    # distance to observation plane center
+    dist_to_obs = np.linalg.norm([prim_x, prim_y, prim_z])
+
+    # calculate particle beta factor
+    if particle == "Photon":
+        beta = 1
+    if particle == "Proton":
+        gamma = content["shower_0"]["total_energy"] / 0.938272089
+        beta = np.sqrt(1 - 1 / (gamma * gamma))
+
+    # time to observation plane center
+    time_to_obs = dist_to_obs / (0.299792458 * beta)
+
+    # there will be only one array from CORSIKA 8
+    array_offsets.append([time_to_obs, 0, 0])
 
     if(debug):
         for array in range(len(array_offsets)):
@@ -261,15 +304,15 @@ def generate_input_card(version):
     if debug:
         print("Generating input card")
 
+    # input card array, append the first line manually
+    input_card = []
+    input_card.append(f"CORSIKA 8 ({version}) inputs:")
+
     # get CLI arguments passed to a CORSIKA 8 run
     with open(path_input + "/config.yaml", "r") as read_file:
         content = yaml.safe_load(read_file)
-        args = content["args"]
 
-    args_split = args.split()
-    args_split.pop(0)
-
-    input_card = [f"CORSIKA 8 ({version}) inputs:"]
+    args_split = content["args"].split()
 
     for i in range(len(args_split)):
         if args_split[i][0] == "-":
@@ -288,17 +331,37 @@ def generate_input_card(version):
         if debug:
             print(f"   {line}")
 
-        # eventIO string format is a 2-byte-integer for length + the string itself
+        # eventIO string format is a 2-byte integer for length + the string itself
         input_card_bytes += np.int16(len(line)).tobytes()
         input_card_bytes += line.encode()
 
     return input_card_bytes, len(input_card)
 
+def generate_event_end():
+    # event end - 273 floats
+    event_end_bytes = bytearray(np.zeros(273).astype(np.float32))
+
+    # modify bytearray to start with the EVTE mark
+    event_end_bytes[0:4] = b"EVTE"
+
+    return event_end_bytes
+
+def generate_run_end():
+    # run end - 3 floats
+    run_end_bytes = bytearray(np.zeros(3).astype(np.float32)) 
+
+    # modify bytearray to start with the RUNE mark
+    run_end_bytes[0:4] = b"RUNE"
+
+    return run_end_bytes
 
 def get_number_showers():
     with open(path_input + "/summary.yaml", "r") as read_file:
         content = yaml.safe_load(read_file)
     return content["showers"]
+
+
+print("[Parquet-EventIO convertor for CORSIKA 8]")
 
 # debug mode
 debug = False
@@ -314,7 +377,7 @@ if len(sys.argv) == 1:
 
 # path to input
 path_input = sys.argv[1]
-print(f"Input path  : '{path_input}'")
+print(f"   Input path  : '{path_input}'")
 
 # output file name
 name_output = "data_eventIO.dat"
@@ -327,7 +390,7 @@ else:
     # store output in the input dir
     path_output = sys.argv[1] + "/" + name_output
 
-print(f"Output path : '{path_output}'")
+print(f"   Output path : '{path_output}'")
 
 # paths to parquet and config files
 path_cher_parquet = path_input + "/cherenkov/light.parquet"
@@ -335,15 +398,11 @@ path_cher_conf = path_input + "/cherenkov/config.yaml"
 
 # check whether input files exist
 if not (os.path.exists(path_cher_parquet) or os.path.exists(path_cher_conf)):
-    print("Missing Cherenkov files (parquet or config) in input path")
+    print("   Missing Cherenkov files (parquet or config) in input path")
     sys.exit(2)
 
 # load input data file
 cher_data = pd.read_parquet(path_cher_parquet, "pyarrow")
-
-# load input config file
-with open(path_cher_conf, "r") as read_file:
-    cher_conf = yaml.safe_load(read_file)
 
 # eventIO sync marker to place before every eventIO top-level object (listed below)
 sync_marker = eventio.constants.SYNC_MARKER_LITTLE_ENDIAN
@@ -360,6 +419,7 @@ type_run_end = eventio.iact.RunEnd.eventio_type                # 1210
 # non top-level object types (no sync marker prefix)
 type_bunch = eventio.iact.Photons.eventio_type                 # 1205
 
+# standard word size in bytes
 word_size = 4
 
 header_size = corsikaio.constants.BLOCK_SIZE_FLOATS
@@ -368,17 +428,16 @@ header_size_m = (header_size + 1) * word_size
 # ID word serves as an additional object identifier, ignore and always set to 0
 id_word = 0
 
-# empty array of 273 floats (eventIO block)
-data = np.zeros(273).astype(np.float32)
+print("Generating headers and EventIO metadata")
 
 # generate the run header, override version to 8.0
 run_header_bytes = generate_run_header(version=version_override)
-        
+
 # generate the event header, override version to 8.0
 event_header_bytes, first_ints = generate_event_header(version=version_override)
 
 # generate telescope definition object
-telescope_defs = generate_telescope_definitions()
+telescope_defs, rotation_matrices = generate_telescope_definitions()
 
 # generate array offsets
 array_offsets = generate_array_offsets()
@@ -386,10 +445,16 @@ array_offsets = generate_array_offsets()
 # generate input card
 input_card_bytes, input_card_lines = generate_input_card(version=version_override)
 
+# generate event end
+event_end_bytes = generate_event_end()
+
+# generate run end
+run_end_bytes = generate_run_end()
+
 # number of events (showers)
 n_events = get_number_showers()
 
-print(f"\nWriting eventIO file")
+print("Writing EventIO file")
 with open(path_output, 'wb') as f:
     # RUN HEADER
     f.write(sync_marker)  # sync marker
@@ -421,16 +486,11 @@ with open(path_output, 'wb') as f:
         f.write(np.float32(tele[0][2]).tobytes())
         f.write(np.float32(tele[2]).tobytes())
 
-        center = telescope_defs[0][0]
-        pointing = telescope_defs[0][1]
-        radius = telescope_defs[0][2]
-
-        # calculate rotation matrix to transform points onto the ground plane
-        rotation_matrix = rotation_matrix_from_vectors(pointing, [0, 0, 1])
-
+    total_bunches = 0
     # write individual events (i.e. showers)
     for ev_id in range(n_events):
-        # print(f"   writing event {ev_id} ({ev_id+1}/{n_events})")
+        if (ev_id != 0 and ev_id % int(n_events/10) == 0):
+            print(f"   [{'{:3.0f}'.format(ev_id/n_events*100)}%] written {ev_id}/{n_events} events ({total_bunches} bunches)")
 
         # correct the event number and the first interaction height
         event_header_bytes[4:8] = np.float32(ev_id).tobytes()
@@ -459,17 +519,15 @@ with open(path_output, 'wb') as f:
         # filter cherenkov data for this event
         event_data = cher_data[cher_data["shower"] == ev_id]
 
-        # if (ev_id == 1):
+        # if (ev_id > 2 and ev_id < 5):
         #     print(event_data)
 
         # number of photon bunches and photons in this event
         n_bunch_event = event_data.count()["weight"]
         n_photons_event = event_data.sum()["weight"]
-        # number of telescopes with hits in this event 
-        n_tele_event = len(telescope_defs)
 
-        if (ev_id > 2600 and ev_id < 2610):
-            print(f"      {ev_id}  {n_bunch_event} bunches, {n_photons_event} photons, {n_tele_event} telescopes")
+        # if (ev_id > 2 and ev_id < 5):
+        #     print(f"      {ev_id}  {n_bunch_event} bunches, {n_photons_event} photons")
 
         # TELESCOPE DATA
         f.write(sync_marker)  # sync marker
@@ -477,23 +535,23 @@ with open(path_output, 'wb') as f:
         f.write(np.int32(id_word).tobytes())  # ID word
         # length word
         # The TelescopeDefinitions object contains only subobjects, so bit 30 of the length word has to be set.
-        # Split the length word into two 2-byte words, first with the actual length, second to set the bit 30
         # Actual length is 
         #   = n_bunches * 16 (each bunch is 8 x 2-byte)
         #   + n_telescopes * 24 (one bunch object per telescope, 12-byte bunch object header + 12-byte bunch object prefix)
-        f.write(np.int16(n_bunch_event * 16 + n_tele_event * 24).tobytes())  # length word
-        f.write(np.int16(16384).tobytes())
+        #   and also add 1073741824 which flips bit 30
+        f.write(np.int32(n_bunch_event * 16 + len(telescope_defs) * 24 + 1073741824).tobytes())  # length word
 
         # analyze number of telescopes and bunches in events:
-        for teleID in range(n_tele_event):
+        for teleID in range(len(telescope_defs)):
             # filter cherenkov data in this event for this telescope
             tele_data = event_data[event_data["obsId"] == teleID]
 
             # number of bunches in the event for this telescope
-            n_bunch_tele = tele_data.count()["weight"]
+            n_bunch_tele = int(tele_data.count()["weight"])
             n_photons_tele = tele_data.sum()["weight"] 
 
-            # print(f"         telescope {teleID}: {n_bunch_tele} bunches, {n_photons_event} photons")
+            # if (ev_id > 2 and ev_id < 5):
+            #     print(f"         telescope {teleID}: {n_bunch_tele} bunches, {n_photons_event} photons")
 
             # BUNCHES
             # not a top-level object, no sync marker
@@ -505,7 +563,7 @@ with open(path_output, 'wb') as f:
             #   = prefix for array and telescope ID (2 x 2-byte int)
             #   + number of photons (4-byte float),
             #   + number of bunches (4-byte int)
-            f.write(np.int16(0).tobytes())
+            f.write(np.int16(0).tobytes())  # array ID always 0
             f.write(np.int16(teleID).tobytes())
             f.write(np.float32(n_photons_tele).tobytes())
             f.write(np.int32(n_bunch_tele).tobytes())
@@ -515,33 +573,36 @@ with open(path_output, 'wb') as f:
                 # extract bunch values from the dataframe
                 hit = np.multiply([bunch["hitX"], bunch["hitY"], bunch["hitZ"]], 1e2)
                 dir = [bunch["dirX"], bunch["dirY"], bunch["dirZ"]]
-                time = array_offsets[0][0] - bunch["time"]
-                zem = bunch["emissionAlt"]
-                photons = bunch["weight"]
-                wavelength = bunch["wavelength"]
 
                 # transform hits to observer local coordinate system
-                trf_hits = np.dot(rotation_matrix, np.subtract(hit, center))
-                trf_dirs = np.dot(rotation_matrix, dir)
+                trf_hits = np.dot(rotation_matrices[teleID], np.subtract(hit, telescope_defs[teleID][0]))
+                trf_dirs = np.dot(rotation_matrices[teleID], dir)
 
+                # if (ev_id > 2 and ev_id < 5):
                 # print(bunch)                
                 
                 # in compact mode each bunch is 8 x 2-byte int and can be modified by a factor, so we modify it the opposite way to counter the reader:
                 #   x (divided by 10)
                 #   y (divided by 10),
-                #   cx (divided by 30000
-                #   cy (divided by 30000
+                #   cx (divided by 30000)
+                #   cy (divided by 30000)
                 #   time (divided by 10)
                 #   zem (10 ^ (x/1000) for x)
                 #   photons (divided by 100)
                 #   wavelength
     
-                bunch_array = [trf_hits[0] * 10, trf_hits[1] * 10, trf_dirs[0] * 3e4, trf_dirs[1] * 3e4, time * 10, np.log10(zem *1e2) * 1000, photons * 100, wavelength], 
+                bunch_array = [trf_hits[0] * 10, trf_hits[1] * 10, trf_dirs[0] * 3e4, trf_dirs[1] * 3e4,
+                 (bunch["time"] - array_offsets[0][0]) * 10, np.log10(bunch["emissionAlt"] * 1e2) * 1000,
+                  bunch["weight"] * 100, bunch["wavelength"]] 
+                
+                # if (ev_id > 2 and ev_id < 5):
                 # print(bunch_array)
                 
                 # write bunch as a series of ones
                 bunches_bytes = bytearray(np.array(bunch_array, dtype=np.int16))
                 f.write(bunches_bytes)
+
+                total_bunches += 1
 
         # EVENT END
         f.write(sync_marker)  # sync marker
@@ -549,12 +610,11 @@ with open(path_output, 'wb') as f:
         f.write(np.int32(id_word).tobytes())  # ID word
         f.write(np.int32(header_size_m).tobytes())  # length word
         f.write(np.int32(header_size).tobytes())  # number of floats in header/end
-        event_end_bytes = bytearray(data)
-        # modify bytearray to start with the EVTE mark
-        event_end_bytes[0:4] = b"EVTE"
         # correct the event number
         event_end_bytes[4:8] = np.float32(ev_id).tobytes()
         f.write(event_end_bytes)
+
+    print(f"   [100%] written {n_events}/{n_events} events ({total_bunches} bunches)")
 
     # RUN END
     f.write(sync_marker)  # sync marker
@@ -562,68 +622,68 @@ with open(path_output, 'wb') as f:
     f.write(np.int32(id_word).tobytes())  # ID word
     f.write(np.int32(16).tobytes())  # number of floats in header/end
     f.write(np.int32(3).tobytes())  # number of floats in run end (always 3)
-    run_end = bytearray(np.zeros(3).astype(np.float32)) 
-    # modify bytearray to start with the RUNE mark
-    run_end[0:4] = b"RUNE"
     # correct the number of events
-    run_end[8:12] = np.float32(n_events).tobytes()
-    f.write(run_end) 
+    run_end_bytes[8:12] = np.float32(n_events).tobytes()
+    f.write(run_end_bytes) 
 
-# sys.exit(0)
-
-print(f"\nOpening the created binary file '{path_output}")
+print(f"Opening and trying to read the created binary file")
 with eventio.IACTFile(path_output) as f:
-    print("   Opened successfully")
+    if(debug):
+        print("   Opened successfully")
 
     # test run header
-    print(f"   Run header:")
-    print(f"      CORSIKA version : {f.header["version"]}")
-    print(f"      Showers         : {f.header["n_showers"]}")
-    print(f"      Energy range    : {f.header["energy_min"]} - {f.header["energy_max"]}")
-    print(f"      Obs. level      : {f.header["observation_height"][0] / 1e2} m")
+    if(debug):
+        print(f"   Run header:")
+        print(f"      CORSIKA version : {f.header["version"]}")
+        print(f"      Showers         : {f.header["n_showers"]}")
+        print(f"      Energy range    : {f.header["energy_min"]} - {f.header["energy_max"]}")
+        print(f"      Obs. level      : {f.header["observation_height"][0] / 1e2} m")
 
     # test input card - print first five lines
     input_card = f.input_card.decode("utf-8").split("\n")
-    print(f"   Input card header:")
-    for i in range(5):
-        print(f"      {input_card[i]}")
-    if len(input_card) > 5:
-        print(f"      ...")
+    if(debug):
+        print(f"   Input card header:")
+        for i in range(5):
+            print(f"      {input_card[i]}")
+        if len(input_card) > 5:
+            print(f"      ...")
     
     # test telescope definitions    
     n_telescopes = len(f.telescope_positions)
-    print(f"   Telescopes ({n_telescopes}):")
+    if(debug):
+        print(f"   Telescopes ({n_telescopes}):")
     for telescope in range(n_telescopes):
         radius = f.telescope_positions[telescope]["r"] / 1e2
-        print(f"      [{telescope}] position : ({f.telescope_positions[telescope]["x"] / 1e2}, {f.telescope_positions[telescope]["y"]/1e2}, {f.telescope_positions[telescope]["z"]/1e2}) m")
-        print(f"          radius   : {radius} m")
+        if(debug):
+            print(f"      [{telescope}] position : ({f.telescope_positions[telescope]["x"] / 1e2}, {f.telescope_positions[telescope]["y"]/1e2}, {f.telescope_positions[telescope]["z"]/1e2}) m")
+            print(f"          radius   : {radius} m")
 
-    # test event header
-    print("   Iterating events:")
+    # test event
+    if(debug):
+        print("   Iterating events:")
     for event in f:
-
+        # event number
         ev_id = int(event.header["event_number"])
 
-        # if (ev_id == 2605):
-        #     break
+        # print(f"event{ev_id}")
 
-        print(f"   Event header:")
-        print(f"      [{ev_id}] energy       : {event.header["total_energy"]} GeV")
-        print(f"      [{ev_id}] injection height: {event.header["starting_height"] / 1e2} m")
-        print(f"      [{ev_id}] 1st int. alt : {event.header["first_interaction_height"] / 1e2} m")
-        
-        print(f"   Photon bunches:")
-        bunches = event.photon_bunches
+        # print info only for the first event
+        if (debug and ev_id < 1):
+            print(f"      [{ev_id}] energy       : {event.header["total_energy"]} GeV")
+            print(f"      [{ev_id}] injection height: {event.header["starting_height"] / 1e2} m")
+            print(f"      [{ev_id}] 1st int. alt : {event.header["first_interaction_height"] / 1e2} m")
         
         for teleID, bunches in event.photon_bunches.items():
-            print(f"      Telescope {teleID}:")    
+            if (debug and ev_id < 1):
+                print(f"      [{ev_id}] photon bunches: telescope {teleID}:")    
         
-            bunchID = 0
+            bunch_id = 0
             for bunch in bunches:
-                if (bunchID > 5):
-                    break
-                precision = 4
-                print(f"         [{format(bunchID):.{precision}}] x = {bunch["x"]:.{precision}} cm,   y = {bunch["y"]:.{precision}} cm, cx = {bunch["cx"]:.{precision}}, cy = {bunch["cy"]:.{precision}}")
-                print(f"              t = {bunch["time"]:.{precision}} ns, zem = {bunch["zem"] / 1e2:.{precision+2}} m, ph = {bunch["photons"]:.{precision}}, wl = {bunch["wavelength"]:.{precision}}")        
-                bunchID += 1
-    
+                # print info only for the first three bunches
+                if (debug and ev_id < 1 and bunch_id < 3):
+                    precision = 4
+                    print(f"          [{format(bunch_id):.{precision}}] x = {bunch["x"]:.{precision}} cm,   y = {bunch["y"]:.{precision}} cm, cx = {bunch["cx"]:.{precision}}, cy = {bunch["cy"]:.{precision}}")
+                    print(f"              t = {bunch["time"]:.{precision}} ns, zem = {bunch["zem"] / 1e2:.{precision+2}} m, ph = {bunch["photons"]:.{precision}}, wl = {bunch["wavelength"]:.{precision}}")        
+                bunch_id += 1
+print(f"Read successfully\n")
+  

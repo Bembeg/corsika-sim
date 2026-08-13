@@ -79,6 +79,7 @@ echo "Shower simulation configuration:"
 
 # Determine output directory name for this simulation
 SIM_OUTPUT="${OUTPUT_DIR}/pdg${PDG}_E${ENE}_inj${INJ}_z${ZEN}_${SUF}"
+SIM_OUTPUT="${OUTPUT_DIR}/${SUF}"
 echo " - PDG     :  $PDG"
 echo " - Energy  :  $ENE"
 echo " - Inj. H  :  $INJ"
@@ -92,6 +93,7 @@ for N in $(seq 0 1 $((NRUN-1))); do
     echo -en "\033[2K\rRunning: $((N+1))/$NRUN"
 
     RUN_OUTPUT=${SIM_OUTPUT}/run_$N
+    RUN_OUTPUT=${SIM_OUTPUT}
 
     # Check if output directory exists for this simulation
     if [ -d ${RUN_OUTPUT} ]; then
@@ -109,10 +111,9 @@ for N in $(seq 0 1 $((NRUN-1))); do
         --disable-interaction-histograms \
         --injection-height $INJ \
         -z $ZEN \
+        --atmosphere /scratch/home/rprivara/Corsika/corsika/modules/data/CHERENKOV/atmosphere/atmprof_CTA-S.dat \
+        --observation-level 2147 \
         &> ${SIM_OUTPUT}_${N}.log &
-
-        # --atmosphere /corsika/corsika/modules/data/CHERENKOV/atmosphere/atmprof_USStdBK2.dat \
-        # --max-deflection-angle 0.02 \
 
     # Get PID of the new process
     PID=$!

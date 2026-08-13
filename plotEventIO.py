@@ -8,7 +8,7 @@ import yaml
 import eventio
 
 
-debug = True
+debug = False
 
 output_path = sys.argv[1]
 
@@ -20,7 +20,9 @@ input_name = "output.corsika"
 n_bins = 64
 
 # colors in plots
-colors=("black", "firebrick", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
+colors=("firebrick", "mediumblue", "black", "green", "goldenrod", "skyblue", "lightpink")
+# colors=("C1", "C2", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
+
 alt_color = "forestgreen"
 alt_alpha = 0.6
 
@@ -33,6 +35,8 @@ alpha_edge = 0.40
 
 # linestyles
 linestyles=["solid", (0, (1, 1)), "none"]
+
+linewidth = 2
 
 print("Inputs:")
 for i in range(2, len(sys.argv)):
@@ -87,7 +91,7 @@ for sim in range(len(input_paths)):
 bound_zem_min = np.quantile(bounds["zem"]["min"], 0)
 bound_zem_max = np.quantile(bounds["zem"]["max"], 0.95)
 bound_time_min = np.quantile(bounds["time"]["min"], 0)
-bound_time_max = np.quantile(bounds["time"]["max"], 0.95)
+bound_time_max = np.quantile(bounds["time"]["max"], 0.9)
 bound_first_int_min = min(bounds["first_int"])
 bound_first_int_max = max(bounds["first_int"])
 bound_photons_min = np.quantile(bounds["photons"], 0)
@@ -148,12 +152,12 @@ for sim in range(len(input_paths)):
             bins[sim][telescope] = {}
             hists[sim][telescope] = {}
             photons[sim][telescope] = []
-            bins[sim][telescope]["x"] = np.linspace(-1.0 * radius, 1.1 * radius, n_bins)
+            bins[sim][telescope]["x"] = np.linspace(-1.25 * radius, 1.25 * radius, n_bins)
             hists[sim][telescope]["x"] = np.zeros(len(bins[sim][telescope]["x"])-1)
-            bins[sim][telescope]["y"] = np.linspace(-1.1 * radius, 1.1 * radius, n_bins)
+            bins[sim][telescope]["y"] = np.linspace(-1.25 * radius, 1.25 * radius, n_bins)
             hists[sim][telescope]["y"] = np.zeros(len(bins[sim][telescope]["y"])-1)
             hists[sim][telescope]["xy"] = np.zeros((len(bins[sim][telescope]["x"])-1, len(bins[sim][telescope]["y"])-1))
-            bins[sim][telescope]["r"] = np.linspace(0, 1.1 * radius, n_bins)
+            bins[sim][telescope]["r"] = np.linspace(0, 1.25 * radius, n_bins)
             hists[sim][telescope]["r"] = np.zeros(len(bins[sim][telescope]["r"])-1)
             bins[sim][telescope]["cx"] = np.linspace(0, 1, n_bins)
             hists[sim][telescope]["cx"] = np.zeros(len(bins[sim][telescope]["cx"])-1)
@@ -261,6 +265,7 @@ for sim in range(len(input_paths)):
 legend = sim_names
 if (len(legend) > 1):
     legend[0] += " (ref)"
+# legend = ["CORSIKA 7", "CORSIKA 8"]
 
 # proxies for legend
 proxies = []
@@ -303,7 +308,9 @@ for plot in range(len(titles)):
 
         # special treatment for first interaction histogram
         if(cols[plot] != "first_int"):
-            plot_title = f"{titles[plot]}\n(telescope {telescope})"
+            plot_title = f"{titles[plot]}"
+            if (n_telescopes > 1):
+                plot_title += "\n(telescope {telescope})"
             plot_name = f"tele{telescope}_{names[plot]}"
         else:
             plot_title = f"{titles[plot]}"
@@ -333,6 +340,7 @@ for plot in range(len(titles)):
         ax1.set_ylabel(y_label)
         ax2.set_xlabel(x_labels[plot])
         ax2.set_ylabel("ratio to ref.")
+        # ax2.set_ylabel("C8 / C7")
 
         # add grid
         ax1.grid(ls="dashed", c="0.85")
@@ -348,12 +356,17 @@ for plot in range(len(titles)):
             if(cols[plot] != "first_int"):
                 plot_bins = bins[sim][telescope][cols[plot]]
                 plot_hist = hists[sim][telescope][cols[plot]]
-    
+                
+                plot_errors_lo = plot_hist - np.sqrt(plot_hist)
+                plot_errors_hi = plot_hist + np.sqrt(plot_hist)
+
                 # normalize distribution by integral
                 if (normalize[plot]):
                     hist_integral = sum(plot_hist)
                     for bin in range(len(plot_hist)):
                         plot_hist[bin] = plot_hist[bin] / hist_integral
+                        plot_errors_lo[bin] = plot_errors_lo[bin] / hist_integral
+                        plot_errors_hi[bin] = plot_errors_hi[bin] / hist_integral
 
                 # calculate ratio to reference
                 plot_hist_ratio = plot_hist / hists[0][telescope][cols[plot]]
@@ -362,11 +375,16 @@ for plot in range(len(titles)):
                 plot_bins = bins[sim][cols[plot]]
                 plot_hist = hists[sim][cols[plot]]
 
+                plot_errors_lo = plot_hist - np.sqrt(plot_hist)
+                plot_errors_hi = plot_hist + np.sqrt(plot_hist)
+
                 # normalize distribution by integral
                 if (normalize[plot]):
                     hist_integral = sum(plot_hist)
                     for bin in range(len(plot_hist)):
                         plot_hist[bin] = plot_hist[bin] / hist_integral
+                        plot_errors_lo[bin] = plot_errors_lo[bin] / hist_integral
+                        plot_errors_hi[bin] = plot_errors_hi[bin] / hist_integral
 
                 # calculate ratio to reference
                 plot_hist_ratio = plot_hist / hists[0][cols[plot]]
@@ -380,11 +398,16 @@ for plot in range(len(titles)):
                 bin_centers.append(bin_center)
      
             # plot histograms
-            ax1.plot(bin_centers, plot_hist, color=colors[sim], linestyle=linestyles[0], marker=".")
-            ax2.plot(bin_centers, plot_hist_ratio, color=colors[sim], linestyle=linestyles[0], marker=".")
-        
+            ax1.plot(bin_centers, plot_hist, color=colors[sim], linestyle=linestyles[0], linewidth=linewidth, marker=".")
+            # ax1.fill_between(bin_centers, plot_errors_lo, plot_errors_hi, linewidth=linewidth, color=(colors[sim], alpha_band), edgecolor=(colors[sim], alpha_edge), label=None)
+            ax2.plot(bin_centers, plot_hist_ratio, color=colors[sim], linewidth=linewidth, linestyle=linestyles[0], marker=".")
+    
+        # ratio plot y-axis range
+        ax2.set_ylim(0.5, 1.5)
+
         # plot legend
-        ax1.legend(handles=proxies, fontsize="small", loc="lower right", bbox_to_anchor=(1.012, 1))
+        ax1.legend(handles=proxies, loc="lower right", bbox_to_anchor=(1.012, 1))
+        # ax1.legend(handles=proxies, loc="lower right", bbox_to_anchor=(1.015, 1), ncols=2)
         fig.savefig(plot_path + plot_name + ".png", dpi=dpi_val)
         plt.close()
 
