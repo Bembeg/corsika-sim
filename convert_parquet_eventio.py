@@ -580,7 +580,7 @@ with open(path_output, 'wb') as f:
             #   = n_bunches * 16 (each bunch is 8 x 2-byte)
             #   + n_telescopes * 24 (one bunch object per telescope, 12-byte bunch object header + 12-byte bunch object prefix)
             #   and also add 1073741824 which flips bit 30
-            f.write(np.int32(n_bunch_event * 16 + len(telescope_defs) * 24 + 1073741824).tobytes())  # length word
+            f.write(np.int32(n_bunch_event * 32 + len(telescope_defs) * 24 + 1073741824).tobytes())  # length word
 
             # analyze number of telescopes and bunches in events:
             for teleID in range(len(telescope_defs)):
@@ -597,9 +597,9 @@ with open(path_output, 'wb') as f:
                 # BUNCHES
                 # not a top-level object, no sync marker
                 f.write(np.int16(type_bunch).tobytes())  # type/version word
-                f.write(np.int16(16000).tobytes())  # include version 16000 in the type/version word, needed to parse correctly
+                f.write(np.int16(0).tobytes())  # include version 16000 in the type/version word, needed to parse correctly
                 f.write(np.int32(id_word).tobytes())  # ID word
-                f.write(np.int32(n_bunch_tele * 16 + 12).tobytes())  # length word, 16-byte per bunch + 12-byte header
+                f.write(np.int32(n_bunch_tele * 32 + 12).tobytes())  # length word, 16-byte per bunch + 12-byte header
                 # bunch object length is 12 bytes:
                 #   = prefix for array and telescope ID (2 x 2-byte int)
                 #   + number of photons (4-byte float),
@@ -619,36 +619,23 @@ with open(path_output, 'wb') as f:
                     trf_hits = np.dot(rotation_matrices[teleID], np.subtract(hit, telescope_defs[teleID][0]))
                     trf_dirs = np.dot(rotation_matrices[teleID], dir)
 
-                    # if (ev_id > 2 and ev_id < 5):
-                    # print(bunch)                
-                    
-                    # in compact mode each bunch is 8 x 2-byte int and can be modified by a factor, so we modify it the opposite way to counter the reader:
-                    #   x (divided by 10)
-                    #   y (divided by 10),
-                    #   cx (divided by 30000)
-                    #   cy (divided by 30000)
-                    #   time (divided by 10)
-                    #   zem (10 ^ (x/1000) for x)
-                    #   photons (divided by 100)
-                    #   wavelength
-        
-                    bunch_array = [trf_hits[0] * 10, trf_hits[1] * 10, trf_dirs[0] * 3e4, trf_dirs[1] * 3e4,
-                    (bunch["time"] - array_offsets[0][0]) * 10, np.log10(bunch["emissionAlt"] * 1e2) * 1000,
-                    bunch["weight"] * 100, bunch["wavelength"]] 
-                    
-                    # try converting the array to int16 bytearray, watching for overflow
+                    bunch_array = [trf_hits[0], trf_hits[1], trf_dirs[0], trf_dirs[1],
+                    bunch["time"] - array_offsets[0][0], bunch["emissionAlt"] * 1e2,
+                    bunch["weight"], bunch["wavelength"]] 
+
+                    # try converting the array to float32 bytearray, watching for overflow
                     try:
-                        bunches_bytes = bytearray(np.array(bunch_array, dtype=np.int16))
+                        bunches_bytes = bytearray(np.array(bunch_array, dtype=np.float32))
                     except OverflowError:
                         print(f"Photon bunch has a value outside of np.int16 range in event {ev_id}: ", end="")
 
                         for i in range(len(bunch_array)):
-                            if (bunch_array[i] < np.iinfo(np.int16).min):                      
-                                print(f"array element {i} clamped ({bunch_array[i]} -> {np.iinfo(np.int16).min})")
-                                bunch_array[i] = np.iinfo(np.int16).min
-                            elif (bunch_array[i] > np.iinfo(np.int16).max):
-                                print(f"array element {i} clamped ({bunch_array[i]} -> {np.iinfo(np.int16).max})")
-                                bunch_array[i] = np.iinfo(np.int16).max
+                            if (bunch_array[i] < np.iinfo(np.float32).min):                      
+                                print(f"array element {i} clamped ({bunch_array[i]} -> {np.iinfo(np.float32).min})")
+                                bunch_array[i] = np.iinfo(np.float32).min
+                            elif (bunch_array[i] > np.iinfo(np.float32).max):
+                                print(f"array element {i} clamped ({bunch_array[i]} -> {np.iinfo(np.float32).max})")
+                                bunch_array[i] = np.iinfo(np.float32).max
 
                     f.write(bunches_bytes)
 
@@ -732,10 +719,10 @@ with eventio.IACTFile(path_output) as f:
             bunch_id = 0
             for bunch in bunches:
                 # print info only for the first three bunches
-                if (debug and ev_id < 1 and bunch_id < 3):
+                if (debug and ev_id < 1 and bunch_id < 10):
                     precision = 4
                     print(f"          [{format(bunch_id):.{precision}}] x = {bunch["x"]:.{precision}} cm,   y = {bunch["y"]:.{precision}} cm, cx = {bunch["cx"]:.{precision}}, cy = {bunch["cy"]:.{precision}}")
-                    print(f"              t = {bunch["time"]:.{precision}} ns, zem = {bunch["zem"] / 1e2:.{precision+2}} m, ph = {bunch["photons"]:.{precision}}, wl = {bunch["wavelength"]:.{precision}}")        
+                    print(f"              t = {bunch["time"]} ns, zem = {bunch["zem"] / 1e2:.{precision+2}} m, ph = {bunch["photons"]:.{precision}}, wl = {bunch["wavelength"]:.{precision}}")        
                 bunch_id += 1
 print(f"Read successfully\n")
   

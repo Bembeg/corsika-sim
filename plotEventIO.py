@@ -19,11 +19,11 @@ sim_names = []
 
 input_name = "output.corsika"
 
-n_bins = 32
+n_bins = 64
 
 # colors in plots
 colors=("firebrick", "mediumblue", "black", "green", "goldenrod", "skyblue", "lightpink")
-# colors=("C1", "C2", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
+colors=("C1", "C2", "mediumblue", "green", "goldenrod", "skyblue", "lightpink")
 
 alt_color = "forestgreen"
 alt_alpha = 0.6
@@ -71,56 +71,49 @@ bounds = { "first_int": [],
  "photons": [],
 }
 
-# go over input files and collect min and max values
-for sim in range(len(input_paths)):
-    with eventio.IACTFile(input_paths[sim] + "/" + input_name) as f:
-        for event in f:
-            bounds["first_int"].append(-event.header["first_interaction_height"] / 1e5)
+print("Calculating bounds")
 
-            for telescope in range(len(f.telescope_positions)):
-                if len(event.photon_bunches) == 0:
-                    continue
+# # go over input files and collect min and max values
+# for sim in range(len(input_paths)):
+#     with eventio.IACTFile(input_paths[sim] + "/" + input_name) as f:
+#         for event in f:
+#             bounds["first_int"].append(-event.header["first_interaction_height"] / 1e5)
 
-                if (len(event.photon_bunches[telescope]["zem"]) > 0):
-                    bounds["zem"]["min"].append(min(event.photon_bunches[telescope]["zem"]) / 1e2)
-                    bounds["zem"]["max"].append(max(event.photon_bunches[telescope]["zem"]) / 1e2)
+#             for telescope in range(len(f.telescope_positions)):
+#                 if len(event.photon_bunches) == 0:
+#                     continue
+
+#                 if (len(event.photon_bunches[telescope]["zem"]) > 0):
+#                     bounds["zem"]["min"].append(min(event.photon_bunches[telescope]["zem"]) / 1e2)
+#                     bounds["zem"]["max"].append(max(event.photon_bunches[telescope]["zem"]) / 1e2)
                 
-                if (len(event.photon_bunches[telescope]["time"]) > 0):
-                    bounds["time"]["min"].append(min(event.photon_bunches[telescope]["time"]))
-                    bounds["time"]["max"].append(max(event.photon_bunches[telescope]["time"]))
+#                 if (len(event.photon_bunches[telescope]["time"]) > 0):
+#                     bounds["time"]["min"].append(min(event.photon_bunches[telescope]["time"]))
+#                     bounds["time"]["max"].append(max(event.photon_bunches[telescope]["time"]))
                 
-                if (len(event.photon_bunches[telescope]["cx"]) > 0):
-                    bounds["angx"]["min"].append(min(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cx"]), 180/np.pi)))
-                    bounds["angx"]["max"].append(max(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cx"]), 180/np.pi)))
-                    bounds["angx"]["mean"].append(np.mean(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cx"]), 180/np.pi)))
-                    bounds["angy"]["min"].append(min(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cy"]), 180/np.pi)))
-                    bounds["angy"]["max"].append(max(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cy"]), 180/np.pi)))
-                    bounds["angy"]["mean"].append(np.mean(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cy"]), 180/np.pi)))
+#                 if (len(event.photon_bunches[telescope]["cx"]) > 0):
+#                     bounds["angx"]["mean"].append(np.mean(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cx"]), 180/np.pi)))
+#                     bounds["angy"]["mean"].append(np.mean(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cy"]), 180/np.pi)))
 
-                bounds["photons"].append(sum(event.photon_bunches[telescope]["photons"]))
+#                 bounds["photons"].append(sum(event.photon_bunches[telescope]["photons"]))
 
 # determine absolute min and max values
-bound_zem_min = np.quantile(bounds["zem"]["min"], 0)
-bound_zem_max = np.quantile(bounds["zem"]["max"], 0.99)
-bound_time_min = np.min(bounds["time"]["min"])
-bound_time_max = np.quantile(bounds["time"]["max"], 0.25)
-bound_first_int_min = np.min(bounds["first_int"])
-bound_first_int_max = np.max(bounds["first_int"])
-bound_photons_min = np.quantile(bounds["photons"], 0)
-bound_photons_max = np.quantile(bounds["photons"], 0.99)
+bound_zem_min = 2000
+bound_zem_max = 15000
+bound_time_min = -70
+bound_time_max = -55
+bound_first_int_min = 0
+bound_first_int_max = 70
+bound_photons_min = 0
+bound_photons_max = 7e5
 
-bound_angx_min = np.quantile(bounds["angx"]["min"], 0.999)
-bound_angx_max = np.quantile(bounds["angx"]["max"], 0.001)
-bound_angy_min = np.quantile(bounds["angy"]["min"], 0.999)
-bound_angy_max = np.quantile(bounds["angy"]["max"], 0.001)
 bound_angx_mean = np.mean(bounds["angx"]["mean"])
 bound_angy_mean = np.mean(bounds["angy"]["mean"])
 margin = 1
-bound_angx_min = bound_angx_mean - margin
-bound_angx_max = bound_angx_mean + margin
-bound_angy_min = bound_angy_mean - margin
-bound_angy_max = bound_angy_mean + margin
-
+bound_angx_min = -2
+bound_angx_max = 2
+bound_angy_min = -1
+bound_angy_max = 1
 
 if(debug):
     print("Printing bounds:")
@@ -170,21 +163,21 @@ for sim in range(len(input_paths)):
             bins[sim][telescope]["x"] = np.linspace(-2 * radius, 2 * radius, 4*n_bins+1)
             bins[sim][telescope]["y"] = np.linspace(-2 * radius, 2 * radius, 4*n_bins+1)
             bins[sim][telescope]["r"] = np.linspace(0, 2 * radius, 4*n_bins+1)
-            bins[sim][telescope]["angx"] = np.linspace(bound_angx_min, bound_angx_max, 4*n_bins+1)
-            bins[sim][telescope]["angy"] = np.linspace(bound_angy_min, bound_angy_max, 4*n_bins+1)
+            bins[sim][telescope]["angx"] = np.linspace(bound_angx_min, bound_angx_max, n_bins+1)
+            bins[sim][telescope]["angy"] = np.linspace(bound_angy_min, bound_angy_max, n_bins+1)
             bins[sim][telescope]["wavelen"] = np.linspace(-1, 1200, n_bins+1)
             bins[sim][telescope]["zem"] = np.linspace(bound_zem_min, bound_zem_max, n_bins+1)
-            bins[sim][telescope]["time"] = np.linspace(bound_time_min, bound_time_max, n_bins+1)
+            bins[sim][telescope]["time"] = np.linspace(bound_time_min, bound_time_max, 200)
             bins[sim][telescope]["photons"] = np.linspace(bound_photons_min, bound_photons_max, n_bins+1)
             hists[sim][telescope]["x_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
             hists[sim][telescope]["y_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
             hists[sim][telescope]["xy"] = np.zeros((4*n_bins, 4*n_bins))
             hists[sim][telescope]["r_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
-            hists[sim][telescope]["angx_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
-            hists[sim][telescope]["angy_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
+            hists[sim][telescope]["angx_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
+            hists[sim][telescope]["angy_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
             hists[sim][telescope]["wavelen_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
             hists[sim][telescope]["zem_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
-            hists[sim][telescope]["time_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
+            hists[sim][telescope]["time_2D"] = np.zeros((n_events, 199), dtype=np.float32)
             hists[sim][telescope]["photons"] = np.zeros(n_bins, dtype=np.float32)
 
         if(debug):
@@ -193,7 +186,10 @@ for sim in range(len(input_paths)):
         ev_id = 0
         for event in f:
             # collect first interaction altitudes
-            hist, _ = np.histogram(-event.header["first_interaction_height"] / 1e5, bins=bins[sim]["first_int"])
+            if sim > 0:
+                hist, _ = np.histogram((-event.header["first_interaction_height"] + 214700) / 1e5, bins=bins[sim]["first_int"])
+            else:
+                hist, _ = np.histogram(-event.header["first_interaction_height"] / 1e5, bins=bins[sim]["first_int"])
             hists[sim]["first_int"] += hist
 
             for telescope in range(n_telescopes):
@@ -290,7 +286,7 @@ for sim in range(len(input_paths)):
 legend = sim_names
 if (len(legend) > 1):
     legend[0] += " (ref)"
-# legend = ["CORSIKA 7", "CORSIKA 8"]
+legend = ["CORSIKA 7", "CORSIKA 8"]
 
 # proxies for legend
 proxies = []
@@ -301,7 +297,7 @@ print("Making plots")
 
 titles = ["First interaction altitude",
  "Hit X positions", "Hit Y positions",
- "Hit radius", "Hit incident angle X", "Hit incident angle Y", "Hit time",
+ "Hit radius", "Photon incident angle (X)", "Hit incident angle Y", "Photon impact time",
  "Photon emission altitude", "Photon wavelength", "Photons per shower"]
 
 x_labels = ["$H_0$ [km]",
@@ -322,7 +318,7 @@ names = ["first_int", "hitX", "hitY",
 
 log_scale = [0, 0, 0, 0, 1, 1, 0, 0, 0, 0]
 
-normalize = [1, 1, 1, 0, 1, 1, 1, 1, 1, 0]
+normalize = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
 
 for plot in range(len(titles)):
     for telescope in range(n_telescopes):
@@ -362,8 +358,8 @@ for plot in range(len(titles)):
         ax1.set_title(plot_title, loc="left")
         ax1.set_ylabel(y_label)
         ax2.set_xlabel(x_labels[plot])
-        ax2.set_ylabel("ratio to ref.")
-        # ax2.set_ylabel("C8 / C7")
+        # ax2.set_ylabel("ratio to ref.")
+        ax2.set_ylabel("C8 / C7")
 
         # add grid
         ax1.grid(ls="dashed", c="0.85")
@@ -439,11 +435,16 @@ for plot in range(len(titles)):
                 plt.text(0.98, 0.93 - sim*0.08, "{:.4E}".format(sum(photons[sim][telescope])), horizontalalignment='right',verticalalignment='center', transform=ax1.transAxes, color=colors[sim])
 
         # ratio plot y-axis range
-        ax2.set_ylim(0.5, 1.5)
+        if (cols[plot] == "zem"):
+            ax2.set_ylim(0.6, 1.4)
+        if (cols[plot] == "angx"):
+            ax2.set_ylim(0.6, 1.4)
+        if (cols[plot] == "time"):
+            ax2.set_ylim(0.0, 4)
       
         # plot legend
-        ax1.legend(handles=proxies, loc="lower right", bbox_to_anchor=(1.012, 1))
-        # ax1.legend(handles=proxies, loc="lower right", bbox_to_anchor=(1.015, 1), ncols=2)
+        # ax1.legend(handles=proxies, loc="lower right", bbox_to_anchor=(1.012, 1))
+        ax1.legend(handles=proxies, loc="lower right", bbox_to_anchor=(1.015, 1), ncols=2)
         fig.savefig(plot_path + plot_name + ".png", dpi=dpi_val)
         plt.close()
 
