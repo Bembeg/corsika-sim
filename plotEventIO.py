@@ -8,7 +8,7 @@ import yaml
 import eventio
 
 
-debug = True
+debug = False
 
 error_bars = True
 
@@ -19,7 +19,7 @@ sim_names = []
 
 input_name = "output.corsika"
 
-n_bins = 64
+n_bins = 32
 
 # colors in plots
 colors=("firebrick", "mediumblue", "black", "green", "goldenrod", "skyblue", "lightpink")
@@ -66,6 +66,8 @@ os.makedirs(plot_path, exist_ok=True)
 bounds = { "first_int": [],
  "time": {"min": [], "max": []},
  "zem": {"min": [], "max": []},
+ "angx": {"min": [], "max": [], "mean": []},
+ "angy": {"min": [], "max": [], "mean": []},
  "photons": [],
 }
 
@@ -73,7 +75,7 @@ bounds = { "first_int": [],
 for sim in range(len(input_paths)):
     with eventio.IACTFile(input_paths[sim] + "/" + input_name) as f:
         for event in f:
-            bounds["first_int"].append((event.header["starting_height"] + event.header["first_interaction_height"]) / 1e5)
+            bounds["first_int"].append(-event.header["first_interaction_height"] / 1e5)
 
             for telescope in range(len(f.telescope_positions)):
                 if len(event.photon_bunches) == 0:
@@ -87,6 +89,14 @@ for sim in range(len(input_paths)):
                     bounds["time"]["min"].append(min(event.photon_bunches[telescope]["time"]))
                     bounds["time"]["max"].append(max(event.photon_bunches[telescope]["time"]))
                 
+                if (len(event.photon_bunches[telescope]["cx"]) > 0):
+                    bounds["angx"]["min"].append(min(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cx"]), 180/np.pi)))
+                    bounds["angx"]["max"].append(max(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cx"]), 180/np.pi)))
+                    bounds["angx"]["mean"].append(np.mean(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cx"]), 180/np.pi)))
+                    bounds["angy"]["min"].append(min(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cy"]), 180/np.pi)))
+                    bounds["angy"]["max"].append(max(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cy"]), 180/np.pi)))
+                    bounds["angy"]["mean"].append(np.mean(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cy"]), 180/np.pi)))
+
                 bounds["photons"].append(sum(event.photon_bunches[telescope]["photons"]))
 
 # determine absolute min and max values
@@ -99,12 +109,27 @@ bound_first_int_max = np.max(bounds["first_int"])
 bound_photons_min = np.quantile(bounds["photons"], 0)
 bound_photons_max = np.quantile(bounds["photons"], 0.99)
 
+bound_angx_min = np.quantile(bounds["angx"]["min"], 0.999)
+bound_angx_max = np.quantile(bounds["angx"]["max"], 0.001)
+bound_angy_min = np.quantile(bounds["angy"]["min"], 0.999)
+bound_angy_max = np.quantile(bounds["angy"]["max"], 0.001)
+bound_angx_mean = np.mean(bounds["angx"]["mean"])
+bound_angy_mean = np.mean(bounds["angy"]["mean"])
+margin = 1
+bound_angx_min = bound_angx_mean - margin
+bound_angx_max = bound_angx_mean + margin
+bound_angy_min = bound_angy_mean - margin
+bound_angy_max = bound_angy_mean + margin
+
+
 if(debug):
     print("Printing bounds:")
     print(f"   first inter. alt. [km] : {bound_first_int_min} - {bound_first_int_max}")
     print(f"   photons / shower       : {bound_photons_min} - {bound_photons_max}")
     print(f"   emission_height [m]    : {bound_zem_min} - {bound_zem_max}")
     print(f"   time [ns]              : {bound_time_min} - {bound_time_max}")
+    print(f"   inc. angle X [deg]     : {bound_angx_min} - {bound_angx_max}")
+    print(f"   inc. angle Y [deg]     : {bound_angy_min} - {bound_angy_max}")
 
 # initialize global histograms
 hists = {}
@@ -142,22 +167,21 @@ for sim in range(len(input_paths)):
             hists[sim][telescope] = {}
             photons[sim][telescope] = []
             
-            bins[sim][telescope]["x"] = np.linspace(-1.1 * radius, 1.1 * radius, n_bins+1)
-            bins[sim][telescope]["y"] = np.linspace(-1.1 * radius, 1.1 * radius, n_bins+1)
-            bins[sim][telescope]["r"] = np.linspace(0, 1.1 * radius, n_bins+1)
-            bins[sim][telescope]["cx"] = np.linspace(0, 1, n_bins+1)
-            bins[sim][telescope]["cy"] = np.linspace(0, 1, n_bins+1)
+            bins[sim][telescope]["x"] = np.linspace(-2 * radius, 2 * radius, 4*n_bins+1)
+            bins[sim][telescope]["y"] = np.linspace(-2 * radius, 2 * radius, 4*n_bins+1)
+            bins[sim][telescope]["r"] = np.linspace(0, 2 * radius, 4*n_bins+1)
+            bins[sim][telescope]["angx"] = np.linspace(bound_angx_min, bound_angx_max, 4*n_bins+1)
+            bins[sim][telescope]["angy"] = np.linspace(bound_angy_min, bound_angy_max, 4*n_bins+1)
             bins[sim][telescope]["wavelen"] = np.linspace(-1, 1200, n_bins+1)
             bins[sim][telescope]["zem"] = np.linspace(bound_zem_min, bound_zem_max, n_bins+1)
             bins[sim][telescope]["time"] = np.linspace(bound_time_min, bound_time_max, n_bins+1)
             bins[sim][telescope]["photons"] = np.linspace(bound_photons_min, bound_photons_max, n_bins+1)
-            
-            hists[sim][telescope]["x_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
-            hists[sim][telescope]["y_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
-            hists[sim][telescope]["xy"] = np.zeros((n_bins, n_bins))
-            hists[sim][telescope]["r_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
-            hists[sim][telescope]["cx_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
-            hists[sim][telescope]["cy_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
+            hists[sim][telescope]["x_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
+            hists[sim][telescope]["y_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
+            hists[sim][telescope]["xy"] = np.zeros((4*n_bins, 4*n_bins))
+            hists[sim][telescope]["r_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
+            hists[sim][telescope]["angx_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
+            hists[sim][telescope]["angy_2D"] = np.zeros((n_events, 4*n_bins), dtype=np.float32)
             hists[sim][telescope]["wavelen_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
             hists[sim][telescope]["zem_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
             hists[sim][telescope]["time_2D"] = np.zeros((n_events, n_bins), dtype=np.float32)
@@ -169,7 +193,7 @@ for sim in range(len(input_paths)):
         ev_id = 0
         for event in f:
             # collect first interaction altitudes
-            hist, _ = np.histogram((event.header["starting_height"] + event.header["first_interaction_height"]) / 1e5, bins=bins[sim]["first_int"])
+            hist, _ = np.histogram(-event.header["first_interaction_height"] / 1e5, bins=bins[sim]["first_int"])
             hists[sim]["first_int"] += hist
 
             for telescope in range(n_telescopes):
@@ -191,10 +215,10 @@ for sim in range(len(input_paths)):
                 hists[sim][telescope]["xy"] += hist
                 hist, _ = np.histogram(radius, bins=bins[sim][telescope]["r"])
                 hists[sim][telescope]["r_2D"][ev_id, :] = hist
-                hist, _ = np.histogram(event.photon_bunches[telescope]["cx"], bins=bins[sim][telescope]["cx"])
-                hists[sim][telescope]["cx_2D"][ev_id, :] = hist
-                hist, _ = np.histogram(event.photon_bunches[telescope]["cy"], bins=bins[sim][telescope]["cy"])
-                hists[sim][telescope]["cy_2D"][ev_id, :] = hist
+                hist, _ = np.histogram(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cx"]), 180/np.pi), bins=bins[sim][telescope]["angx"])
+                hists[sim][telescope]["angx_2D"][ev_id, :] = hist
+                hist, _ = np.histogram(90 - np.multiply(np.acos(event.photon_bunches[telescope]["cy"]), 180/np.pi), bins=bins[sim][telescope]["angy"])
+                hists[sim][telescope]["angy_2D"][ev_id, :] = hist
                 hist, _ = np.histogram(event.photon_bunches[telescope]["time"], bins=bins[sim][telescope]["time"])
                 hists[sim][telescope]["time_2D"][ev_id, :] = hist
                 hist, _ = np.histogram(event.photon_bunches[telescope]["zem"] / 1e2, bins=bins[sim][telescope]["zem"])
@@ -211,8 +235,8 @@ for sim in range(len(input_paths)):
             hists[sim][telescope]["x"] = np.mean(hists[sim][telescope]["x_2D"], axis=0)
             hists[sim][telescope]["y"] = np.mean(hists[sim][telescope]["y_2D"], axis=0)
             hists[sim][telescope]["r"] = np.mean(hists[sim][telescope]["r_2D"], axis=0)
-            hists[sim][telescope]["cx"] = np.mean(hists[sim][telescope]["cx_2D"], axis=0)
-            hists[sim][telescope]["cy"] = np.mean(hists[sim][telescope]["cy_2D"], axis=0)
+            hists[sim][telescope]["angx"] = np.mean(hists[sim][telescope]["angx_2D"], axis=0)
+            hists[sim][telescope]["angy"] = np.mean(hists[sim][telescope]["angy_2D"], axis=0)
             hists[sim][telescope]["wavelen"] = np.mean(hists[sim][telescope]["wavelen_2D"], axis=0)
             hists[sim][telescope]["zem"] = np.mean(hists[sim][telescope]["zem_2D"], axis=0)
             hists[sim][telescope]["time"] = np.mean(hists[sim][telescope]["time_2D"], axis=0)
@@ -277,13 +301,12 @@ print("Making plots")
 
 titles = ["First interaction altitude",
  "Hit X positions", "Hit Y positions",
- "Hit radius", "Hit direction X-cosine",
- "Hit direction Y-cosine", "Hit time",
+ "Hit radius", "Hit incident angle X", "Hit incident angle Y", "Hit time",
  "Photon emission altitude", "Photon wavelength", "Photons per shower"]
 
 x_labels = ["$H_0$ [km]",
  "$x$ [m]", "$y$ [m]", "$r$ [m]",
- "$\\cos_x$", "$\\cos_y$", "$t$ [ns]",
+ "$\\theta_x$ [deg]", "$\\theta_y$ [deg]", "$t$ [ns]",
  "$H_{em}$ [m]", "$\\lambda$ [nm]", "$N_{\\text{photons}}$ / shower"]
 
 y_labels = ["Showers", "Photons", "Photons",
@@ -291,15 +314,15 @@ y_labels = ["Showers", "Photons", "Photons",
  "Photons", "Photons", "Photons", "Showers"]
 
 cols = ["first_int", "x", "y", "r",
- "cx", "cy", "time", "zem", "wavelen", "photons"]
+ "angx", "angy", "time", "zem", "wavelen", "photons"]
 
 names = ["first_int", "hitX", "hitY",
- "hitR", "hitCX", "hitCY", "time",
+ "hitR", "hitAngX", "hitAngY", "time",
  "Hem", "wavelen", "photons"]
 
-log_scale = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+log_scale = [0, 0, 0, 0, 1, 1, 0, 0, 0, 0]
 
-normalize = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0]
+normalize = [1, 1, 1, 0, 1, 1, 1, 1, 1, 0]
 
 for plot in range(len(titles)):
     for telescope in range(n_telescopes):
@@ -441,3 +464,5 @@ if(len(sim_names) == 1):
         fig.colorbar(mesh, ax=ax, label="Photon density", pad=0.02, shrink=0.835)
         fig.savefig(plot_path + f"tele{telescope}_hitXY.png", dpi=dpi_val)
         plt.close()
+
+print("Plots done\n")
