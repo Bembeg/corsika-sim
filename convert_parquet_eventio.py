@@ -4,9 +4,12 @@
 import os
 import sys
 import yaml
+import math
+import random
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+from pandarallel import pandarallel
 
 import eventio
 import corsikaio
@@ -78,7 +81,7 @@ def generate_run_header(version):
     # convert header to bytearray
     run_header_bytes = bytearray(run_header)
 
-    # write the header tag
+    # modify bytearray to start with the RUNH mark
     run_header_bytes[0:4] = b"RUNH"
 
     return run_header_bytes
@@ -108,7 +111,11 @@ def generate_event_header(version):
         content_prim_sum = yaml.safe_load(prim_sum)
     with open(path_input + "/interactions/summary.yaml", "r") as int_sum:
         content_int_sum = yaml.safe_load(int_sum)
-                    
+
+    # azimuth and zenith angles - initialize to 0
+    ang_zen = np.float32(0)
+    ang_azi = np.float32(0)
+
     # observation height stored in m, convert to cm
     header_obs_level = np.float32(np.linalg.norm(content_particles["plane"]["center"]) * 1e2)
 
@@ -121,6 +128,11 @@ def generate_event_header(version):
         if "observation-level" in args_split[arg]:
             # observation altitude in m
             obs_alt = np.float32(args_split[arg+1])   
+        if (args_split[arg] == "-z" or args_split[arg] == "--zenith"):
+            ang_zen = np.float32(math.radians(float(args_split[arg+1])))
+
+        if (args_split[arg] == "-a" or args_split[arg] == "--azimuth"):
+            ang_azi = np.float32(math.radians(float(args_split[arg+1])))
 
     # number of events / showers
     n_events = len(content_prim_sum)
@@ -139,9 +151,6 @@ def generate_event_header(version):
     # convert to cm
     header_start_height *= 1e2
 
-    # header_start_height = obs_alt + np.float32(np.linalg.norm([prim_x, prim_y, prim_z]) * 1e2)
-    start_point = np.add(content_particles["plane"]["center"], [prim_x, prim_y, prim_z])
-
     # primary particle momentum    
     header_mom_x = content_int_sum["shower_0"]["px"]
     header_mom_y = content_int_sum["shower_0"]["py"]
@@ -153,21 +162,15 @@ def generate_event_header(version):
 
         # first interaction height
         first_int_height = np.float32(np.linalg.norm(np.add(content_particles["plane"]["center"], first_int)))
-        first_int_alt = (first_int_height - np.linalg.norm(content_particles["plane"]["center"])) 
+        # convert to a.s.l. altitude
+        first_int_alt = first_int_height - np.linalg.norm(content_particles["plane"]["center"]) + obs_alt 
 
-        # first interaction height stored in m, convert to cm and make negative (for some reason C7 stores the number as negative)
+        # first interaction altitude stored in m, convert to cm and make negative (for some reason C7 stores the number as negative, so align with it)
         first_ints.append(-first_int_alt * 1e2)
 
     # manually define values for the event header
     header_version = np.float32(version)
     header_n_obs_levels = np.float32(1)
-
-    # TODO calculate zenith, azimuth, theta, phi
-    header_zenith = np.float32(0)
-    header_azimuth = np.float32(0)
-    header_theta = np.float32(0)
-    header_phi = np.float32(0)
-
     # TODO cherenkov parameters from config
     header_cher_bunch = np.float32(5)
     header_cher_wavelen_min = np.float32(240)
@@ -178,18 +181,14 @@ def generate_event_header(version):
     event_header[3] = header_total_energy
     event_header[7] = header_mom_x
     event_header[8] = header_mom_y
-    event_header[9] = header_mom_mz
-    event_header[10] = header_zenith
-    event_header[11] = header_azimuth
+    event_header[9] = -header_mom_mz    # header stores the momentum z-component with a minus
+    event_header[10] = ang_zen
+    event_header[11] = ang_azi
     event_header[45] = header_version
     event_header[46] = header_n_obs_levels
     event_header[47] = header_obs_level
     event_header[58] = header_total_energy
     event_header[59] = header_total_energy
-    event_header[80] = header_theta
-    event_header[81] = header_theta
-    event_header[82] = header_phi
-    event_header[83] = header_phi
     event_header[84] = header_cher_bunch
     event_header[95] = header_cher_wavelen_min
     event_header[96] = header_cher_wavelen_max
@@ -197,6 +196,7 @@ def generate_event_header(version):
 
     # convert header to bytearray
     event_header_bytes = bytearray(event_header)
+    # modify bytearray to start with the EVTH mark
     event_header_bytes[0:4] = b"EVTH"
 
     if (debug):
@@ -204,14 +204,12 @@ def generate_event_header(version):
         print(f"   total energy   : {header_total_energy} GeV")
         print(f"   mom x          : {header_mom_x} GeV/c")
         print(f"   mom y          : {header_mom_y} GeV/c")
-        print(f"   -mom z         : {header_mom_mz} GeV/c")
-        print(f"   azimuth        : {header_azimuth} rad")
-        print(f"   zenith         : {header_zenith} rad")
+        print(f"   -mom z         : {-header_mom_mz} GeV/c")
+        print(f"   azimuth        : {ang_azi} rad")
+        print(f"   zenith         : {ang_zen} rad")
         print(f"   obs. level     : {header_obs_level} cm")
         print(f"   start height   : {header_start_height} cm")
         print(f"   1st int.       : {first_ints[-1]} cm")
-        print(f"   theta          : {header_theta} deg")
-        print(f"   phi            : {header_phi} deg")
         print(f"   cher. bunch    : {header_cher_bunch}")
         print(f"   cher. range    : {header_cher_wavelen_min} - {header_cher_wavelen_max} nm")
 
@@ -242,14 +240,14 @@ def generate_telescope_definitions():
         # empty telescope definition
         telescope_def = []
 
-        # get telescope position
+        # get telescope position in cm
         telescope_def.append(np.multiply(content_cherenkov["observers"][tele]["position"], 1e2))
         # subtract observation level
         telescope_def[-1][2] -= obs_height
-        # pointing direction
+        # get pointing direction
         telescope_def.append(content_cherenkov["observers"][tele]["pointing"])
-        # and radius
-        telescope_def.append(content_cherenkov["observers"][tele]["radius"] * 1e2)
+        # and radius in cm
+        telescope_def.append(np.multiply(content_cherenkov["observers"][tele]["radius"], 1e2))
 
         # append telescope definition to the list
         telescope_defs.append(telescope_def)
@@ -258,11 +256,11 @@ def generate_telescope_definitions():
         rotation_matrices.append(rotation_matrix_from_vectors(content_cherenkov["observers"][tele]["pointing"], [0, 0, 1]))
 
     if debug:
-        teleID = 0
+        tele_id = 0
         for tele in telescope_defs:
-            print(f"   [{teleID}] x = {tele[0][0]}, y = {tele[0][1]}, z = {tele[0][2]} cm")
-            print(f"   [{teleID}] px = {tele[1][0]}, py = {tele[1][1]}, pz = {tele[1][2]}")
-            print(f"   [{teleID}] r = {tele[2]} cm")     
+            print(f"   [{tele_id}] x = {tele[0][0]}, y = {tele[0][1]}, z = {tele[0][2]} cm")
+            print(f"   [{tele_id}] px = {tele[1][0]}, py = {tele[1][1]}, pz = {tele[1][2]}")
+            print(f"   [{tele_id}] r = {tele[2]} cm")     
 
     return telescope_defs, rotation_matrices
 
@@ -292,13 +290,14 @@ def generate_array_offsets():
     if particle == "Photon":
         beta = 1
     if particle == "Proton":
-        gamma = content["shower_0"]["total_energy"] / 0.938272089
+        mass = 0.93827208
+        gamma = content["shower_0"]["total_energy"] / mass
         beta = np.sqrt(1 - 1 / (gamma * gamma))
 
     # time to observation plane center
     time_to_obs = dist_to_obs / (0.299792458 * beta)
 
-    # there will be only one array from CORSIKA 8
+    # only one array from CORSIKA 8
     array_offsets.append([time_to_obs, 0, 0])
 
     if(debug):
@@ -319,20 +318,26 @@ def generate_input_card(version):
     with open(path_input + "/config.yaml", "r") as read_file:
         content = yaml.safe_load(read_file)
 
+    # split argument string by spaces
     args_split = content["args"].split()
 
+    # iterate over argument string
     for i in range(len(args_split)):
         if args_split[i][0] == "-":
             
+            # remove trailing "-"
             arg_line = args_split[i].strip("-")
 
-            # check that next one is not a par
+            # check that next one is not a argument key
             if args_split[i+1][0] != "-":
+                # get the argument value
                 arg_line += (" " + args_split[i+1])
                 
+            # add argument key-value pair to the input card
             input_card.append(arg_line)
 
     # convert input card to eventIO strings and to a bytearray
+    # empty bytearray to start with
     input_card_bytes = bytearray()
     for line in input_card:
         if debug:
@@ -362,19 +367,66 @@ def generate_run_end():
 
     return run_end_bytes
 
-def get_number_showers():
+def get_number_of_showers():
     with open(path_input + "/summary.yaml", "r") as read_file:
         content = yaml.safe_load(read_file)
-    return content["showers"]
+    return int(content["showers"])
 
+def generate_bytearray(row):
+    # telescope/observer ID
+    tele_id = np.uint32(row["obsId"])
+
+    # form hit and direction vectors
+    # subtract telescope center position from each hit position
+    hitVec = np.array(np.subtract((row["hitX"], row["hitY"], row["hitZ"]), telescope_defs[tele_id][0]))
+    dirVec = np.array((row["dirX"], row["dirY"], row["dirZ"]))
+
+    # transformed hit positions (in cm) and hit directions (direction cosines) by applying the rotation matrix
+    hitVecTrf = np.dot(rotation_matrices[tele_id], hitVec) * 1e2
+    dirVecTrf = np.dot(rotation_matrices[tele_id], dirVec)
+
+    # subtract array offset from photon impact times
+    time = row["time"] - array_offsets[0][0]
+
+    # convert emission altitude to cm
+    emissionAlt = row["emissionAlt"] * 1e2
+
+    # number of photons in a bunch and wavelength, unmodified
+    photons = row["weight"]
+    wavelength = row["wavelength"]
+
+    # generate the float32 bytearray
+    bunch_bytes = bytearray(np.array((hitVecTrf[0], hitVecTrf[1], dirVecTrf[0], dirVecTrf[1], time, emissionAlt, photons, wavelength), dtype=np.float32))
+
+    return {"shower": row["shower"], "obsId": tele_id, "x": hitVecTrf[0], "y": hitVecTrf[1],
+     "cx": dirVecTrf[0], "cy": dirVecTrf[1], "time": time, "zem": emissionAlt,
+     "photons": photons, "wavelength": wavelength, "bytearray": bunch_bytes}
 
 print("[Parquet-EventIO convertor for CORSIKA 8]")
 
+# --- start of input ---
+
 # debug mode
-debug = True
+debug = False
+
+# test conversion of bunches
+test = True
+# number of randomly selected bunches to test
+n_tests = 1000
+
+# parallel pandas processing using pandarallel
+parallel = True
 
 # override the CORSIKA version to 8.0
 version_override = 8.0
+
+# override photon bunching factor until it can be parsed from a config
+photon_bunching = 5
+
+# chunk size in MB for loading the input data
+chunk_size_MB = 10
+
+# --- end of input ---
 
 # check that path to C8 output was provided
 if len(sys.argv) == 1:
@@ -386,8 +438,8 @@ if len(sys.argv) == 1:
 path_input = sys.argv[1]
 print(f"   Input path  : '{path_input}'")
 
-# output file name
-name_output = "data_eventIO.dat"
+# default output file name
+default_output_name = "data_eventIO.dat"
 
 # path to output
 if len(sys.argv) >= 3:
@@ -395,11 +447,11 @@ if len(sys.argv) >= 3:
     path_output = sys.argv[2]
 else:
     # store output in the input dir
-    path_output = sys.argv[1] + "/" + name_output
+    path_output = sys.argv[1] + "/" + default_output_name
 
 print(f"   Output path : '{path_output}'")
 
-# paths to parquet and config files
+# paths to cherenkov parquet and config files
 path_cher_parquet = path_input + "/cherenkov/light.parquet"
 path_cher_conf = path_input + "/cherenkov/config.yaml"
 
@@ -408,9 +460,30 @@ if not (os.path.exists(path_cher_parquet) or os.path.exists(path_cher_conf)):
     print("   Missing Cherenkov files (parquet or config) in input path")
     sys.exit(2)
 
+if (parallel):
+    # initialize pandarallel (parallel pandas processing)
+    print("Parallel processing of Pandas DataFrames enabled (using Pandarallel)")
+    pandarallel.initialize(nb_workers=2)
+
 # load input data file
-# cher_data = pd.read_parquet(path_cher_parquet, "pyarrow")
 cher_file = pq.ParquetFile(path_cher_parquet)
+
+# (TODO enable) load input cherenkov config file
+# with open(path_cher_conf, "r") as read_file:
+#     conf_cherenkov = yaml.safe_load(read_file)
+#     bunching = conf_cherenkov["bunching"]
+
+# (TODO disable) override for now
+bunching = 5
+
+# size of photon bunch
+bunch_size = 8
+
+# CORSIKA 8 photon bunch dtype size in bytes
+c8_bunch_size = 92
+
+# load input file in 25 MB chunks
+chunk_size = int(chunk_size_MB * 1e6 / 92)
 
 # eventIO sync marker to place before every eventIO top-level object (listed below)
 sync_marker = eventio.constants.SYNC_MARKER_LITTLE_ENDIAN
@@ -430,6 +503,7 @@ type_bunch = eventio.iact.Photons.eventio_type                 # 1205
 # standard word size in bytes
 word_size = 4
 
+# standard header size in EventIO objects
 header_size = corsikaio.constants.BLOCK_SIZE_FLOATS
 header_size_m = (header_size + 1) * word_size
 
@@ -438,10 +512,10 @@ id_word = 0
 
 print("Generating headers and EventIO metadata")
 
-# generate the run header, override version to 8.0
+# generate the run header, (TODO disable) override version to 8.0
 run_header_bytes = generate_run_header(version=version_override)
 
-# generate the event header, override version to 8.0
+# generate the event header, (TODO disable) override version to 8.0
 event_header_bytes, first_ints = generate_event_header(version=version_override)
 
 # generate telescope definition object
@@ -450,7 +524,7 @@ telescope_defs, rotation_matrices = generate_telescope_definitions()
 # generate array offsets
 array_offsets = generate_array_offsets()
 
-# generate input card
+# generate input card, (TODO disable) override version to 8.0
 input_card_bytes, input_card_lines = generate_input_card(version=version_override)
 
 # generate event end
@@ -460,7 +534,33 @@ event_end_bytes = generate_event_end()
 run_end_bytes = generate_run_end()
 
 # number of events (showers)
-n_events = get_number_showers()
+n_events = get_number_of_showers()
+
+if test:
+    print(f"Conversion testing enabled: randomly selecting {n_tests} photon bunches to verify after conversion")
+
+    # array to store [eventID, teleID, bunchID] arrays
+    test_bunches = []
+
+    # randomly select photon bunches to test
+    for i in range(n_tests):
+        # random event ID
+        ev_id = random.randrange(0, n_events)
+
+        # random telescope ID in that event
+        tele_id = random.randrange(0, len(telescope_defs))
+
+        # bunch ID will be chosen during the processing of a given event
+
+        # add to test list
+        test_bunches.append([ev_id, tele_id, 0])
+    
+    # sort by event ID
+    test_bunches.sort(key=lambda x: x[0])
+
+    # arrays to hold the reference and converted bunches
+    bunches_reference = []
+    bunches_converted = []
 
 print("Writing EventIO file")
 with open(path_output, 'wb') as f:
@@ -494,164 +594,145 @@ with open(path_output, 'wb') as f:
         f.write(np.float32(tele[0][2]).tobytes())
         f.write(np.float32(tele[2]).tobytes())
 
+    # total number of photon bunches in the input
     total_bunches = 0
-    # write individual events (i.e. showers)
+    
+    # empty dataframe buffer
+    buffer_df = pd.DataFrame()
 
-    event_data_ = pd.DataFrame()
+    # chunk and event IDs
     chunk_id = 0
     ev_id = 0
 
-    # load cherenkov data in bunches
-    for chunk in cher_file.iter_batches():
-        # print(f"   processing chunk {chunk_id}, looking for event {ev_id}")
-        
-        # print(f"      event dataframe currently has {event_data_.shape[0]} bunches")
-        
+    # buffer for writing bytes
+    write_buffer = bytearray()
+
+    # load cherenkov data in chunks
+    for chunk in cher_file.iter_batches(batch_size=chunk_size):
+        # convert chunk to a dataframe
         chunk_df = chunk.to_pandas()
 
-        # Min and max event id in this data chunk
-        ev_id_min = chunk_df.min()["shower"]
-        ev_id_max = chunk_df.max()["shower"]
+        # fill the buffer with transformed bunches (based on whether parallelization is enabled)
+        if(parallel):
+            buffer_df = pd.concat([buffer_df, chunk_df.parallel_apply(generate_bytearray, axis=1, result_type="expand")], ignore_index=True)
+        else:
+            buffer_df = pd.concat([buffer_df, chunk_df.apply(generate_bytearray, axis=1, result_type="expand")], ignore_index=True)
 
-        # print(f"      chunk min event ID: {ev_id_min}, max event ID: {ev_id_max}", end="")
+        # get min and max event id in this data chunk
+        ev_id_min = buffer_df.min()["shower"]
+        ev_id_max = buffer_df.max()["shower"]
+ 
+        # write events
+        while (ev_id_max > ev_id or ev_id == (n_events-1)):
+            # filter buffer data for the requested event
+            event_data = buffer_df[buffer_df["shower"] == ev_id]
 
-        chunk_id += 1
-
-        if (ev_id_min <= ev_id and ev_id_max >= ev_id):
-            # print(" ... GOOD CHUNK")
-            if event_data_.shape[0] == 0:
-                event_data_ = chunk_df
-            else:
-                event_data_ = pd.concat([event_data_, chunk_df], ignore_index=True)
-
-        while (ev_id_max > ev_id):
-            print(f"writing event {ev_id}")
-
-            # filter cherenkov data for this event
-            event_data = event_data_[event_data_["shower"] == ev_id]
-
-            # keep this chunk for the next event
-            event_data_ = chunk_df
-
+            # report progress
             if (ev_id != 0 and ev_id % int(n_events/40) == 0):
                 print(f"   [{'{:5.1f}'.format(ev_id/n_events*100)}%] written {ev_id}/{n_events} events ({total_bunches} bunches)")
 
-            # correct the event number and the first interaction height
+            # correct the event number and the first interaction altitude
             event_header_bytes[4:8] = np.float32(ev_id).tobytes()
             event_header_bytes[24:28] = np.float32(first_ints[ev_id]).tobytes()
 
             # EVENT HEADER
-            f.write(sync_marker)  # sync marker
-            f.write(np.int32(type_event_header).tobytes())  # type/version word
-            f.write(np.int32(id_word).tobytes())  # ID word
-            f.write(np.int32(header_size_m).tobytes())  # length word
-            f.write(np.int32(header_size).tobytes())  # number of floats in header/end
-            f.write(event_header_bytes)  # write event header
+            write_buffer += sync_marker  # sync marker
+            write_buffer += np.int32(type_event_header).tobytes()  # type/version word
+            write_buffer += np.int32(id_word).tobytes()  # ID word
+            write_buffer += np.int32(header_size_m).tobytes()  # length word
+            write_buffer += np.int32(header_size).tobytes()  # number of floats in header/end
+            write_buffer += event_header_bytes  # write event header
 
             # ARRAY OFFSETS
-            f.write(sync_marker)  # sync marker
-            f.write(np.int32(type_array_offsets).tobytes())  # type/version word
-            f.write(np.int32(id_word).tobytes())  # ID word
-            f.write(np.int32(len(array_offsets) * 12 + 4).tobytes())  # length word
-            f.write(np.int32(len(array_offsets)).tobytes())  # number of offsets (i.e. number of arrays?)      
-            # array offsets written as: (TODO I assume?)
-            # t1 t2 ... tN x1 x2 ... xN y1 y2 ... yN
+            write_buffer += sync_marker  # sync marker
+            write_buffer += np.int32(type_array_offsets).tobytes()  # type/version word
+            write_buffer += np.int32(id_word).tobytes()  # ID word
+            write_buffer += np.int32(len(array_offsets) * 12 + 4).tobytes()  # length word
+            write_buffer += np.int32(len(array_offsets)).tobytes()  # number of offsets (i.e. number of arrays?)
+            # array offsets as:
+            # t1 t2 ... tN x1 x2 ... xN y1 y2 ... yN 
             for par in range(3):
                 for offset in array_offsets:
-                    f.write(np.float32(offset[par]).tobytes()) 
-
-            # if (ev_id > 2 and ev_id < 5):
-            #     print(event_data)
+                    write_buffer += np.float32(offset[par]).tobytes()
 
             # number of photon bunches and photons in this event
-            n_bunch_event = event_data.count()["weight"]
-            n_photons_event = event_data.sum()["weight"]
-
-            # if (ev_id > 2 and ev_id < 5):
-            #     print(f"      {ev_id}  {n_bunch_event} bunches, {n_photons_event} photons")
+            n_bunch_event = event_data.shape[0]
+            n_photons_event = n_bunch_event * photon_bunching
 
             # TELESCOPE DATA
-            f.write(sync_marker)  # sync marker
-            f.write(np.int32(type_tele_data).tobytes())  # type/version word
-            f.write(np.int32(id_word).tobytes())  # ID word
+            write_buffer += sync_marker  # sync marker
+            write_buffer += np.int32(type_tele_data).tobytes()  # type/version word
+            write_buffer += np.int32(id_word).tobytes()  # ID word
             # length word
-            # The TelescopeDefinitions object contains only subobjects, so bit 30 of the length word has to be set.
-            # Actual length is 
-            #   = n_bunches * 16 (each bunch is 8 x 2-byte)
+            # the TelescopeDefinitions object contains only subobjects, so bit 30 of the length word has to be set
+            # actual length is 
+            #   = n_bunches * 32 (each bunch is 8 x 4-byte)
             #   + n_telescopes * 24 (one bunch object per telescope, 12-byte bunch object header + 12-byte bunch object prefix)
-            #   and also add 1073741824 which flips bit 30
-            f.write(np.int32(n_bunch_event * 32 + len(telescope_defs) * 24 + 1073741824).tobytes())  # length word
+            #   and also add 1073741824 which sets bit 30
+            write_buffer += np.int32(n_bunch_event * 32 + len(telescope_defs) * 24 + 1073741824).tobytes()  # length word
 
             # analyze number of telescopes and bunches in events:
-            for teleID in range(len(telescope_defs)):
+            for tele_id in range(len(telescope_defs)):
                 # filter cherenkov data in this event for this telescope
-                tele_data = event_data[event_data["obsId"] == teleID]
+                tele_data = event_data[event_data["obsId"] == tele_id]
+
+                if (test):
+                    for bunch in test_bunches:
+                        # check if this event contains a testing bunch
+                        if (bunch[0] == ev_id and bunch[1] == tele_id):
+
+                            # select a random bunch in this event
+                            bunch[2] = random.randrange(0, tele_data.shape[0])
+
+                            # get the selected bunch
+                            ref_bunch = tuple(tele_data.values[bunch[2]][2:10])
+                            
+                            # add it to the list
+                            bunches_reference.append(ref_bunch)
 
                 # number of bunches in the event for this telescope
-                n_bunch_tele = int(tele_data.count()["weight"])
-                n_photons_tele = tele_data.sum()["weight"] 
-
-                # if (ev_id > 2 and ev_id < 5):
-                #     print(f"         telescope {teleID}: {n_bunch_tele} bunches, {n_photons_event} photons")
+                n_bunch_tele = tele_data.shape[0]
+                n_photons_tele = n_bunch_tele * photon_bunching
 
                 # BUNCHES
                 # not a top-level object, no sync marker
-                f.write(np.int16(type_bunch).tobytes())  # type/version word
-                f.write(np.int16(0).tobytes())  # include version 16000 in the type/version word, needed to parse correctly
-                f.write(np.int32(id_word).tobytes())  # ID word
-                f.write(np.int32(n_bunch_tele * 32 + 12).tobytes())  # length word, 16-byte per bunch + 12-byte header
-                # bunch object length is 12 bytes:
+                write_buffer += np.int32(type_bunch).tobytes()  # type/version word
+                write_buffer += np.int32(id_word).tobytes()  # ID word
+                write_buffer += np.int32(n_bunch_tele * 32 + 12).tobytes()  # length word, 16-byte per bunch + 12-byte header
+                # bunch object prefix length is 12 bytes:
                 #   = prefix for array and telescope ID (2 x 2-byte int)
                 #   + number of photons (4-byte float),
                 #   + number of bunches (4-byte int)
-                f.write(np.int16(0).tobytes())  # array ID always 0
-                f.write(np.int16(teleID).tobytes())
-                f.write(np.float32(n_photons_tele).tobytes())
-                f.write(np.int32(n_bunch_tele).tobytes())
+                write_buffer += np.int16(0).tobytes()  # array ID always 0
+                write_buffer += np.int16(tele_id).tobytes()
+                write_buffer += np.float32(n_photons_tele).tobytes()
+                write_buffer += np.int32(n_bunch_tele).tobytes()
 
                 # write photon bunches
-                for _, bunch in tele_data.iterrows():
-                    # extract bunch values from the dataframe
-                    hit = np.multiply([bunch["hitX"], bunch["hitY"], bunch["hitZ"]], 1e2)
-                    dir = [bunch["dirX"], bunch["dirY"], bunch["dirZ"]]
+                for bunch in tele_data["bytearray"].values.tolist():
+                    write_buffer += bunch
 
-                    # transform hits to observer local coordinate system
-                    trf_hits = np.dot(rotation_matrices[teleID], np.subtract(hit, telescope_defs[teleID][0]))
-                    trf_dirs = np.dot(rotation_matrices[teleID], dir)
+                total_bunches += n_bunch_tele
 
-                    bunch_array = [trf_hits[0], trf_hits[1], trf_dirs[0], trf_dirs[1],
-                    bunch["time"] - array_offsets[0][0], bunch["emissionAlt"] * 1e2,
-                    bunch["weight"], bunch["wavelength"]] 
-
-                    # try converting the array to float32 bytearray, watching for overflow
-                    try:
-                        bunches_bytes = bytearray(np.array(bunch_array, dtype=np.float32))
-                    except OverflowError:
-                        print(f"Photon bunch has a value outside of np.int16 range in event {ev_id}: ", end="")
-
-                        for i in range(len(bunch_array)):
-                            if (bunch_array[i] < np.iinfo(np.float32).min):                      
-                                print(f"array element {i} clamped ({bunch_array[i]} -> {np.iinfo(np.float32).min})")
-                                bunch_array[i] = np.iinfo(np.float32).min
-                            elif (bunch_array[i] > np.iinfo(np.float32).max):
-                                print(f"array element {i} clamped ({bunch_array[i]} -> {np.iinfo(np.float32).max})")
-                                bunch_array[i] = np.iinfo(np.float32).max
-
-                    f.write(bunches_bytes)
-
-                    total_bunches += 1
+            # drop rows for this already written event from the buffer
+            buffer_df.drop(buffer_df[buffer_df["shower"] == ev_id].index, inplace=True)
 
             # EVENT END
-            f.write(sync_marker)  # sync marker
-            f.write(np.int32(type_event_end).tobytes())  # type/version word
-            f.write(np.int32(id_word).tobytes())  # ID word
-            f.write(np.int32(header_size_m).tobytes())  # length word
-            f.write(np.int32(header_size).tobytes())  # number of floats in header/end
+            write_buffer += sync_marker  # sync marker
+            write_buffer += np.int32(type_event_end).tobytes()  # type/version word
+            write_buffer += np.int32(id_word).tobytes()  # ID word
+            write_buffer += np.int32(header_size_m).tobytes()  # length word
+            write_buffer += np.int32(header_size).tobytes()  # number of floats in header/end
             # correct the event number
             event_end_bytes[4:8] = np.float32(ev_id).tobytes()
-            f.write(event_end_bytes)
+            write_buffer += event_end_bytes  # write event end
 
             ev_id += 1
+
+        chunk_id += 1
+        
+    # write the buffer
+    f.write(write_buffer)
 
     print(f"   [100%] written {n_events}/{n_events} events ({total_bunches} bunches)")
 
@@ -697,14 +778,12 @@ with eventio.IACTFile(path_output) as f:
             print(f"      [{telescope}] position : ({f.telescope_positions[telescope]["x"] / 1e2}, {f.telescope_positions[telescope]["y"]/1e2}, {f.telescope_positions[telescope]["z"]/1e2}) m")
             print(f"          radius   : {radius} m")
 
-    # test event
+    # test reading event
     if(debug):
         print("   Iterating events:")
     for event in f:
         # event number
         ev_id = int(event.header["event_number"])
-
-        # print(f"event{ev_id}")
 
         # print info only for the first event
         if (debug and ev_id < 1):
@@ -712,10 +791,10 @@ with eventio.IACTFile(path_output) as f:
             print(f"      [{ev_id}] injection height: {event.header["starting_height"] / 1e2} m")
             print(f"      [{ev_id}] 1st int. alt : {event.header["first_interaction_height"] / 1e2} m")
         
-        for teleID, bunches in event.photon_bunches.items():
+        for tele_id, bunches in event.photon_bunches.items():
             if (debug and ev_id < 1):
-                print(f"      [{ev_id}] photon bunches: telescope {teleID}:")    
-        
+                print(f"      [{ev_id}] photon bunches: telescope {tele_id}:")    
+
             bunch_id = 0
             for bunch in bunches:
                 # print info only for the first three bunches
@@ -724,5 +803,32 @@ with eventio.IACTFile(path_output) as f:
                     print(f"          [{format(bunch_id):.{precision}}] x = {bunch["x"]:.{precision}} cm,   y = {bunch["y"]:.{precision}} cm, cx = {bunch["cx"]:.{precision}}, cy = {bunch["cy"]:.{precision}}")
                     print(f"              t = {bunch["time"]} ns, zem = {bunch["zem"] / 1e2:.{precision+2}} m, ph = {bunch["photons"]:.{precision}}, wl = {bunch["wavelength"]:.{precision}}")        
                 bunch_id += 1
-print(f"Read successfully\n")
-  
+
+        if (test):
+            for bunch in test_bunches:
+                # check if this event contains a test bunch
+                if (bunch[0] == ev_id):
+                    # get the test bunch
+                    conv_bunch = tuple(event.photon_bunches[tele_id][bunch[2]])
+                    
+                    # add bunch to list
+                    bunches_converted.append(conv_bunch)
+                
+print(f"Read all events successfully")
+
+# evaluate bunch conversion tests
+if (test and n_tests > 0):
+    print(f"Testing conversion of {n_tests} randomly selected bunches:")
+
+    # maximum difference between reference and converted value
+    max_diff = np.float64(0)
+
+    # go over test bunches
+    for b in range(n_tests):
+        for i in range(bunch_size):
+            # get the difference between reference and converted value
+            diff = np.abs(np.float64(bunches_reference[b][i]) / np.float64(bunches_converted[b][i]) - 1)
+            # store the maximum value
+            max_diff = max(diff, max_diff)
+
+    print(f"   Maximum difference between original and converted values: {max_diff}\n")
