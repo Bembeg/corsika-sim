@@ -111,6 +111,8 @@ def generate_event_header(version):
         content_prim_sum = yaml.safe_load(prim_sum)
     with open(path_input + "/interactions/summary.yaml", "r") as int_sum:
         content_int_sum = yaml.safe_load(int_sum)
+    with open(path_input + "/cherenkov/config.yaml", "r") as cher_sum:
+        content_cher_sum = yaml.safe_load(cher_sum)
 
     # azimuth and zenith angles - initialize to 0
     ang_zen = np.float32(0)
@@ -171,11 +173,10 @@ def generate_event_header(version):
     # manually define values for the event header
     header_version = np.float32(version)
     header_n_obs_levels = np.float32(1)
-    # TODO cherenkov parameters from config
-    header_cher_bunch = np.float32(5)
-    header_cher_wavelen_min = np.float32(240)
-    header_cher_wavelen_max = np.float32(1000)
-    
+    header_cher_bunch = np.float32(content_cher_sum["bunching"])
+    header_cher_wavelen_min = np.float32(content_cher_sum["wavelength_min"])
+    header_cher_wavelen_max = np.float32(content_cher_sum["wavelength_max"])
+
     # put values into the event header - for reference, see event_header_fields object in corsikaio/subblocks/event_header.py
     event_header[2] = header_pid
     event_header[3] = header_total_energy
@@ -420,9 +421,6 @@ parallel = True
 # override the CORSIKA version to 8.0
 version_override = 8.0
 
-# override photon bunching factor until it can be parsed from a config
-photon_bunching = 5
-
 # chunk size in MB for loading the input data
 chunk_size_MB = 10
 
@@ -463,26 +461,24 @@ if not (os.path.exists(path_cher_parquet) or os.path.exists(path_cher_conf)):
 if (parallel):
     # initialize pandarallel (parallel pandas processing)
     print("Parallel processing of Pandas DataFrames enabled (using Pandarallel)")
-    pandarallel.initialize(nb_workers=2)
+    pandarallel.initialize()
 
 # load input data file
 cher_file = pq.ParquetFile(path_cher_parquet)
 
-# (TODO enable) load input cherenkov config file
-# with open(path_cher_conf, "r") as read_file:
-#     conf_cherenkov = yaml.safe_load(read_file)
-#     bunching = conf_cherenkov["bunching"]
+# load input cherenkov config file
+with open(path_cher_conf, "r") as read_file:
+    conf_cherenkov = yaml.safe_load(read_file)
+    # get bunching factor
+    photon_bunching = conf_cherenkov["bunching"]
 
-# (TODO disable) override for now
-bunching = 5
-
-# size of photon bunch
+# size of photon bunch (elements in the data array)
 bunch_size = 8
 
 # CORSIKA 8 photon bunch dtype size in bytes
 c8_bunch_size = 92
 
-# load input file in 25 MB chunks
+# chunk size for loading the input data
 chunk_size = int(chunk_size_MB * 1e6 / 92)
 
 # eventIO sync marker to place before every eventIO top-level object (listed below)
@@ -535,6 +531,9 @@ run_end_bytes = generate_run_end()
 
 # number of events (showers)
 n_events = get_number_of_showers()
+
+# printing progress
+event_print_number = 5 if n_events < 40 else int(n_events / 40)
 
 if test:
     print(f"Conversion testing enabled: randomly selecting {n_tests} photon bunches to verify after conversion")
@@ -628,7 +627,7 @@ with open(path_output, 'wb') as f:
             event_data = buffer_df[buffer_df["shower"] == ev_id]
 
             # report progress
-            if (ev_id != 0 and ev_id % int(n_events/40) == 0):
+            if (ev_id != 0 and ev_id % event_print_number == 0):
                 print(f"   [{'{:5.1f}'.format(ev_id/n_events*100)}%] written {ev_id}/{n_events} events ({total_bunches} bunches)")
 
             # correct the event number and the first interaction altitude
@@ -734,7 +733,7 @@ with open(path_output, 'wb') as f:
     # write the buffer
     f.write(write_buffer)
 
-    print(f"   [100%] written {n_events}/{n_events} events ({total_bunches} bunches)")
+    print(f"   [100.0%] written {n_events}/{n_events} events ({total_bunches} bunches)")
 
     # RUN END
     f.write(sync_marker)  # sync marker
