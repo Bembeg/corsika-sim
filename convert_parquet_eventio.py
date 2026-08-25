@@ -427,6 +427,9 @@ version_override = 8.0
 # chunk size in MB for loading the input data
 chunk_size_MB = 10
 
+# print progress every 10 events (normally too verbose)
+verbose_event_print = True
+
 # --- end of input ---
 
 # check that path to C8 output was provided
@@ -439,8 +442,8 @@ if len(sys.argv) == 1:
 path_input = sys.argv[1]
 print(f"   Input path  : '{path_input}'")
 
-# default output file name
-default_output_name = "data_eventIO.dat"
+# default output file name - used by CORSIKA 7
+default_output_name = "output.corsika"
 
 # path to output
 if len(sys.argv) >= 3:
@@ -541,6 +544,9 @@ n_events = get_number_of_showers()
 # printing progress
 event_print_number = 5 if n_events < 40 else int(n_events / 40)
 
+if verbose_event_print:
+    event_print_number = 10
+
 if test:
     print(f"Conversion testing enabled: randomly selecting {n_tests} photon bunches to verify after conversion")
 
@@ -609,9 +615,6 @@ with open(path_output, 'wb') as f:
     chunk_id = 0
     ev_id = 0
 
-    # buffer for writing bytes
-    write_buffer = bytearray()
-
     # load cherenkov data in chunks
     for chunk in cher_file.iter_batches(batch_size=chunk_size):
         # convert chunk to a dataframe
@@ -624,7 +627,6 @@ with open(path_output, 'wb') as f:
             buffer_df = pd.concat([buffer_df, chunk_df.apply(generate_bytearray, axis=1, result_type="expand")], ignore_index=True)
 
         # get min and max event id in this data chunk
-        ev_id_min = buffer_df.min()["shower"]
         ev_id_max = buffer_df.max()["shower"]
  
         # write events
@@ -634,47 +636,47 @@ with open(path_output, 'wb') as f:
 
             # report progress
             if (ev_id != 0 and ev_id % event_print_number == 0):
-                print(f"   [{'{:5.1f}'.format(ev_id/n_events*100)}%] written {ev_id}/{n_events} events ({total_bunches} bunches)")
+                print(f"   [{'{:5.1f}'.format(ev_id/n_events*100)}%] converted {ev_id}/{n_events} events ({total_bunches} bunches)")
 
             # correct the event number and the first interaction altitude
             event_header_bytes[4:8] = np.float32(ev_id).tobytes()
             event_header_bytes[24:28] = np.float32(first_ints[ev_id]).tobytes()
 
             # EVENT HEADER
-            write_buffer += sync_marker  # sync marker
-            write_buffer += np.int32(type_event_header).tobytes()  # type/version word
-            write_buffer += np.int32(id_word).tobytes()  # ID word
-            write_buffer += np.int32(header_size_m).tobytes()  # length word
-            write_buffer += np.int32(header_size).tobytes()  # number of floats in header/end
-            write_buffer += event_header_bytes  # write event header
+            f.write(sync_marker)  # sync marker
+            f.write(np.int32(type_event_header).tobytes())  # type/version word
+            f.write(np.int32(id_word).tobytes())  # ID word
+            f.write(np.int32(header_size_m).tobytes())  # length word
+            f.write(np.int32(header_size).tobytes())  # number of floats in header/end
+            f.write(event_header_bytes)  # write event header
 
             # ARRAY OFFSETS
-            write_buffer += sync_marker  # sync marker
-            write_buffer += np.int32(type_array_offsets).tobytes()  # type/version word
-            write_buffer += np.int32(id_word).tobytes()  # ID word
-            write_buffer += np.int32(len(array_offsets) * 12 + 4).tobytes()  # length word
-            write_buffer += np.int32(len(array_offsets)).tobytes()  # number of offsets (i.e. number of arrays?)
+            f.write(sync_marker)  # sync marker
+            f.write(np.int32(type_array_offsets).tobytes())  # type/version word
+            f.write(np.int32(id_word).tobytes())  # ID word
+            f.write(np.int32(len(array_offsets) * 12 + 4).tobytes())  # length word
+            f.write(np.int32(len(array_offsets)).tobytes())  # number of offsets (i.e. number of arrays?)
             # array offsets as:
             # t1 t2 ... tN x1 x2 ... xN y1 y2 ... yN 
             for par in range(3):
                 for offset in array_offsets:
-                    write_buffer += np.float32(offset[par]).tobytes()
+                    f.write(np.float32(offset[par]).tobytes())
 
             # number of photon bunches and photons in this event
             n_bunch_event = event_data.shape[0]
             n_photons_event = n_bunch_event * photon_bunching
 
             # TELESCOPE DATA
-            write_buffer += sync_marker  # sync marker
-            write_buffer += np.int32(type_tele_data).tobytes()  # type/version word
-            write_buffer += np.int32(id_word).tobytes()  # ID word
+            f.write(sync_marker)  # sync marker
+            f.write(np.int32(type_tele_data).tobytes())  # type/version word
+            f.write(np.int32(id_word).tobytes())  # ID word
             # length word
             # the TelescopeDefinitions object contains only subobjects, so bit 30 of the length word has to be set
             # actual length is 
             #   = n_bunches * 32 (each bunch is 8 x 4-byte)
             #   + n_telescopes * 24 (one bunch object per telescope, 12-byte bunch object header + 12-byte bunch object prefix)
             #   and also add 1073741824 which sets bit 30
-            write_buffer += np.int32(n_bunch_event * 32 + len(telescope_defs) * 24 + 1073741824).tobytes()  # length word
+            f.write(np.int32(n_bunch_event * 32 + len(telescope_defs) * 24 + 1073741824).tobytes())  # length word
 
             # analyze number of telescopes and bunches in events:
             for tele_id in range(len(telescope_defs)):
@@ -701,45 +703,42 @@ with open(path_output, 'wb') as f:
 
                 # BUNCHES
                 # not a top-level object, no sync marker
-                write_buffer += np.int32(type_bunch).tobytes()  # type/version word
-                write_buffer += np.int32(id_word).tobytes()  # ID word
-                write_buffer += np.int32(n_bunch_tele * 32 + 12).tobytes()  # length word, 16-byte per bunch + 12-byte header
+                f.write(np.int32(type_bunch).tobytes())  # type/version word
+                f.write(np.int32(id_word).tobytes())  # ID word
+                f.write(np.int32(n_bunch_tele * 32 + 12).tobytes())  # length word, 16-byte per bunch + 12-byte header
                 # bunch object prefix length is 12 bytes:
                 #   = prefix for array and telescope ID (2 x 2-byte int)
                 #   + number of photons (4-byte float),
                 #   + number of bunches (4-byte int)
-                write_buffer += np.int16(0).tobytes()  # array ID always 0
-                write_buffer += np.int16(tele_id).tobytes()
-                write_buffer += np.float32(n_photons_tele).tobytes()
-                write_buffer += np.int32(n_bunch_tele).tobytes()
+                f.write(np.int16(0).tobytes())  # array ID always 0
+                f.write(np.int16(tele_id).tobytes())
+                f.write(np.float32(n_photons_tele).tobytes())
+                f.write(np.int32(n_bunch_tele).tobytes())
 
                 # write photon bunches
                 for bunch in tele_data["bytearray"].values.tolist():
-                    write_buffer += bunch
+                    f.write(bunch)
 
                 total_bunches += n_bunch_tele
 
-            # drop rows for this already written event from the buffer
+            # drop rows for this already written events from the buffer
             buffer_df.drop(buffer_df[buffer_df["shower"] == ev_id].index, inplace=True)
 
             # EVENT END
-            write_buffer += sync_marker  # sync marker
-            write_buffer += np.int32(type_event_end).tobytes()  # type/version word
-            write_buffer += np.int32(id_word).tobytes()  # ID word
-            write_buffer += np.int32(header_size_m).tobytes()  # length word
-            write_buffer += np.int32(header_size).tobytes()  # number of floats in header/end
+            f.write(sync_marker) # sync marker
+            f.write(np.int32(type_event_end).tobytes())  # type/version word
+            f.write(np.int32(id_word).tobytes())  # ID word
+            f.write(np.int32(header_size_m).tobytes())  # length word
+            f.write(np.int32(header_size).tobytes())  # number of floats in header/end
             # correct the event number
             event_end_bytes[4:8] = np.float32(ev_id).tobytes()
-            write_buffer += event_end_bytes  # write event end
+            f.write(event_end_bytes)  # write event end
 
             ev_id += 1
-
-        chunk_id += 1
         
-    # write the buffer
-    f.write(write_buffer)
+        chunk_id += 1
 
-    print(f"   [100.0%] written {n_events}/{n_events} events ({total_bunches} bunches)")
+    print(f"   [100.0%] converted {n_events}/{n_events} events ({total_bunches} bunches)")
 
     # RUN END
     f.write(sync_marker)  # sync marker
