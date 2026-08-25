@@ -418,6 +418,9 @@ n_tests = 1000
 # parallel pandas processing using pandarallel
 parallel = True
 
+# number of workers for parallel processing (<=0 for unlimited)
+n_workers = 0
+
 # override the CORSIKA version to 8.0
 version_override = 8.0
 
@@ -461,7 +464,10 @@ if not (os.path.exists(path_cher_parquet) or os.path.exists(path_cher_conf)):
 if (parallel):
     # initialize pandarallel (parallel pandas processing)
     print("Parallel processing of Pandas DataFrames enabled (using Pandarallel)")
-    pandarallel.initialize()
+    if (n_workers <= 0):
+        pandarallel.initialize()
+    else:
+        pandarallel.initialize(nb_workers=n_workers)
 
 # load input data file
 cher_file = pq.ParquetFile(path_cher_parquet)
