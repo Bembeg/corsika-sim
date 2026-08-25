@@ -260,7 +260,7 @@ for sim in range(len(input_paths)):
                 for line in log_file:
                     if "GENERATED EVENTS" in line:
                         line_split = line.split()
-                        n_events = line_split[-1]
+                        n_events = int(line_split[-1])
 
                     if "CORSIKA IACT" in line:
                         line_split = line.split()
