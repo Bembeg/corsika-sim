@@ -29,10 +29,10 @@ fi
 
 # run converter from parquet to EventIO
 if false; then
-    python3 convert_parquet_eventio.py output/c8_gamma_E1e12_z0_v2 output/c8_gamma_E1e12_z0_v2/output.corsika
-    python3 convert_parquet_eventio.py output/c8_gamma_E1e12_z20_v2 output/c8_gamma_E1e12_z20_v2/output.corsika
-    python3 convert_parquet_eventio.py output/c8_gamma_E1e12_z40_v2 output/c8_gamma_E1e12_z40_v2/output.corsika
-    python3 convert_parquet_eventio.py output/c8_gamma_E1e12_z60_v2 output/c8_gamma_E1e12_z60_v2/output.corsika
+    python3 convert_parquet_eventio.py output/c8_gamma_E1e12_z0_v4
+    python3 convert_parquet_eventio.py output/c8_gamma_E1e12_z20_v4
+    python3 convert_parquet_eventio.py output/c8_gamma_E1e12_z40_v4
+    python3 convert_parquet_eventio.py output/c8_gamma_E1e12_z60_v4
 
     # python3 convert_parquet_eventio.py output/c8_proton_E1e12_z0_v2 output/c8_proton_E1e12_z0_v2/output.corsika
     # python3 convert_parquet_eventio.py output/c8_proton_E1e12_z20_v2 output/c8_proton_E1e12_z20_v2/output.corsika
@@ -42,10 +42,10 @@ fi
 
 # process simulation outputs
 if false; then
-    python3 -W ignore plotEventIO.py gamma_E1e12_z0_v2 output/c7_gamma_E1e12_z0 output/c8_gamma_E1e12_z0_v2
-    python3 -W ignore plotEventIO.py gamma_E1e12_z20_v2 output/c7_gamma_E1e12_z20 output/c8_gamma_E1e12_z20_v2
-    python3 -W ignore plotEventIO.py gamma_E1e12_z40_v2 output/c7_gamma_E1e12_z40 output/c8_gamma_E1e12_z40_v2
-    python3 -W ignore plotEventIO.py gamma_E1e12_z60_v2 output/c7_gamma_E1e12_z60 output/c8_gamma_E1e12_z60_v2
+    python3 -W ignore plotEventIO.py gamma_E1e12_z0 output/c7_gamma_E1e12_z0 output/c8_gamma_E1e12_z0_v4
+    python3 -W ignore plotEventIO.py gamma_E1e12_z20 output/c7_gamma_E1e12_z20 output/c8_gamma_E1e12_z20_v4
+    python3 -W ignore plotEventIO.py gamma_E1e12_z40 output/c7_gamma_E1e12_z40 output/c8_gamma_E1e12_z40_v4
+    python3 -W ignore plotEventIO.py gamma_E1e12_z60 output/c7_gamma_E1e12_z60 output/c8_gamma_E1e12_z60_v4
 
     # python3 -W ignore plotEventIO.py proton_E1e12_z0_v2 output/c7_proton_E1e12_z0 output/c8_proton_E1e12_z0_v2
     # python3 -W ignore plotEventIO.py proton_E1e12_z20_v2 output/c7_proton_E1e12_z20 output/c8_proton_E1e12_z20_v2

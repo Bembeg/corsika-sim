@@ -428,7 +428,7 @@ version_override = 8.0
 chunk_size_MB = 10
 
 # print progress every 10 events (normally too verbose)
-verbose_event_print = True
+verbose_event_print = False
 
 # --- end of input ---
 
@@ -636,7 +636,7 @@ with open(path_output, 'wb') as f:
 
             # report progress
             if (ev_id != 0 and ev_id % event_print_number == 0):
-                print(f"   [{'{:5.1f}'.format(ev_id/n_events*100)}%] converted {ev_id}/{n_events} events ({total_bunches} bunches)")
+                print(f"   [{'{:5.1f}'.format(ev_id/n_events*100)}%] Converted {ev_id}/{n_events} events ({total_bunches} bunches)")
 
             # correct the event number and the first interaction altitude
             event_header_bytes[4:8] = np.float32(ev_id).tobytes()
@@ -655,7 +655,7 @@ with open(path_output, 'wb') as f:
             f.write(np.int32(type_array_offsets).tobytes())  # type/version word
             f.write(np.int32(id_word).tobytes())  # ID word
             f.write(np.int32(len(array_offsets) * 12 + 4).tobytes())  # length word
-            f.write(np.int32(len(array_offsets)).tobytes())  # number of offsets (i.e. number of arrays?)
+            f.write(np.int32(len(array_offsets)).tobytes())  # number of offsets (i.e. number of arrays)
             # array offsets as:
             # t1 t2 ... tN x1 x2 ... xN y1 y2 ... yN 
             for par in range(3):
